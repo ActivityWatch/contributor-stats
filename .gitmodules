@@ -1,0 +1,3 @@
+[submodule "gitstats"]
+	path = gitstats
+	url = https://github.com/ErikBjare/gitstats.git
