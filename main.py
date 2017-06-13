@@ -20,6 +20,7 @@ def merge_author(a1, a2):
     a1["commits"] += a2["commits"]
     a1["lines_added"] += a2["lines_added"]
     a1["lines_removed"] += a2["lines_removed"]
+    a1["active_days"] = set(a1["active_days"]).union(set(a2["active_days"]))
 
     return a1
 
@@ -53,8 +54,14 @@ def getAuthorInfos(data) -> Dict[str, dict]:
     return authorInfos
 
 
+def foldername(path):
+    if os.path.isdir(path):
+        return os.path.basename(path)
+    else:
+        return os.path.dirname(path)
+
+
 def generateForRepo(path):
-    path = os.path.abspath(path)
 
     # TODO: Could use caching to speed up
     data = gitstats.GitDataCollector()
@@ -63,11 +70,10 @@ def generateForRepo(path):
     # os.chdir works as a workaround
     os.chdir(path)
     data.collect(path)
+    data.refine()
     os.chdir(original_cwd)
 
-    data.refine()
-
-    print(data.projectname)
+    print("Generated stats for: {}".format(data.projectname))
     print("Active days: {}".format(len(data.getActiveDays())))
 
     rows = []
@@ -75,6 +81,7 @@ def generateForRepo(path):
     for name, info in authorInfos.items():
         row = OrderedDict(name=name,
                           commits=info["commits"],
+                          active_days=info["active_days"],
                           lines_added=info["lines_added"],
                           lines_removed=info["lines_removed"])
 
@@ -84,9 +91,14 @@ def generateForRepo(path):
 
 
 def table_print(rows):
-    print("{name:<21} | {commits:<8} | {adds:<8} | {deletes:<8}".format(name="Name", commits="Commits", adds="Added", deletes="Removed"))
+    header = "{name:<21} | {commits:<8} | {activedays:<11} | {adds:<8} | {deletes:<8}".format(
+             name="Name", commits="Commits", activedays="Active days", adds="Added", deletes="Removed")
+    print(header)
+    print("-" * len(header))
     for row in rows:
-        print("{name:<21} | {commits:<8} | +{lines_added:<7} | -{lines_removed:<7}".format(**row))
+        print("{name:<21} | {commits:<8} | {n_active_days:<11} | +{lines_added:<7} | -{lines_removed:<7}".format(
+              n_active_days=len(row["active_days"]), **row))
+    print("-" * len(header))
 
 
 class HTML:
@@ -104,7 +116,7 @@ class HTML:
         self += "</{}>".format(tag_type)
 
     def __iadd__(self, other):
-        self.s += "\n" + (self.indent_level * "    ") + other
+        self.s += (self.indent_level * "    ") + other + "\n"
         return self
 
 
@@ -114,7 +126,7 @@ def table2html(rows):
         # Header
         with html.tag("tr"):
             for key in rows[0]:
-                html += "<th>{}</th>".format(key)
+                html += "<th>{}</th>".format(key.replace("_", " ").title())
 
         for row in rows:
             with html.tag("tr"):
@@ -133,17 +145,16 @@ def save_table(name, rows, directory="tables"):
 
 
 if __name__ == "__main__":
-    for repopath in sys.argv[1:]:
-        rows = generateForRepo(repopath)
-        for row in rows:
-            # print(row)
-            pass
+    for path in sys.argv[1:]:
+        path = os.path.abspath(path)
 
+        rows = generateForRepo(path)
         table_print(rows)
 
-        table_name = os.path.dirname(repopath)
         html = table2html(rows)
-        save_table(table_name, html)
-        print(html)
 
-        print("=" * 60)
+        table_name = foldername(path)
+        save_table(table_name, html)
+
+        print()
+        # print(html)
