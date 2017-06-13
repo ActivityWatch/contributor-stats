@@ -1,7 +1,7 @@
 import sys
 import os
-from typing import Dict
-from collections import OrderedDict
+from typing import Dict, List
+from collections import OrderedDict, defaultdict
 import unicodedata
 import logging
 from contextlib import contextmanager
@@ -14,8 +14,11 @@ import gitstats
 
 logger = logging.getLogger(__name__)
 
+AuthorInfo = Dict[str, dict]
+Table = Dict[str, AuthorInfo]
 
-def merge_author(a1, a2):
+
+def merge_author(a1, a2) -> AuthorInfo:
     # TODO: Needs to merge more properties
     a1["commits"] += a2["commits"]
     a1["lines_added"] += a2["lines_added"]
@@ -25,7 +28,7 @@ def merge_author(a1, a2):
     return a1
 
 
-def getAuthorInfos(data) -> Dict[str, dict]:
+def getAuthorInfos(data) -> AuthorInfo:
     names = data.getAuthors()
 
     authorInfos = {}
@@ -54,14 +57,14 @@ def getAuthorInfos(data) -> Dict[str, dict]:
     return authorInfos
 
 
-def foldername(path):
+def foldername(path) -> str:
     if os.path.isdir(path):
         return os.path.basename(path)
     else:
         return os.path.dirname(path)
 
 
-def generateForRepo(path):
+def generateForRepo(path) -> Table:
 
     # TODO: Could use caching to speed up
     data = gitstats.GitDataCollector()
@@ -74,30 +77,27 @@ def generateForRepo(path):
     os.chdir(original_cwd)
 
     print("Generated stats for: {}".format(data.projectname))
-    print("Active days: {}".format(len(data.getActiveDays())))
 
-    rows = []
+    rows = {}
     authorInfos = getAuthorInfos(data)
     for name, info in authorInfos.items():
-        row = OrderedDict(name=name,
-                          commits=info["commits"],
+        row = OrderedDict(commits=info["commits"],
                           active_days=info["active_days"],
                           lines_added=info["lines_added"],
                           lines_removed=info["lines_removed"])
+        rows[name] = row
 
-        rows.append(row)
-
-    return rows
+    return data.projectname, rows
 
 
-def table_print(rows):
+def table_print(rows: Table):
     header = "{name:<21} | {commits:<8} | {activedays:<11} | {adds:<8} | {deletes:<8}".format(
              name="Name", commits="Commits", activedays="Active days", adds="Added", deletes="Removed")
     print(header)
     print("-" * len(header))
-    for row in rows:
+    for name, row in rows.items():
         print("{name:<21} | {commits:<8} | {n_active_days:<11} | +{lines_added:<7} | -{lines_removed:<7}".format(
-              n_active_days=len(row["active_days"]), **row))
+              name=name, n_active_days=len(row["active_days"]), **row))
     print("-" * len(header))
 
 
@@ -120,18 +120,25 @@ class HTML:
         return self
 
 
-def table2html(rows):
+def table2html(rows: Table):
     html = HTML()
+    keys = rows[list(rows.keys())[0]].keys()
+
     with html.tag("table"):
         # Header
         with html.tag("tr"):
-            for key in rows[0]:
+            html += "<th>Name</th>"
+            for key in keys:
                 html += "<th>{}</th>".format(key.replace("_", " ").title())
 
-        for row in rows:
+        # Rows
+        for row in rows.values():
             with html.tag("tr"):
-                for key in rows[0]:
-                    html += "<td>{}</td>".format(row[key])
+                for key in keys:
+                    value = row[key]
+                    if key == "active_days":
+                        value = len(value)
+                    html += "<td>{}</td>".format(value)
     return html.s
 
 
@@ -144,11 +151,32 @@ def save_table(name, rows, directory="tables"):
         f.write(html)
 
 
+def merge_tables(tables: Dict[str, Table]):
+    names = set()
+    for table_name, table in tables.items():
+        for name, row in table.items():
+            names.add(name)
+
+    merged_table = defaultdict(lambda: OrderedDict(commits=0, active_days=[], lines_added=0, lines_removed=0))
+    for name in names:
+        for table in tables.values():
+            if name in table:
+                merged_table[name] = merge_author(merged_table[name], table[name])
+
+    return merged_table
+
+
 if __name__ == "__main__":
+    tables = {}
+
     for path in sys.argv[1:]:
         path = os.path.abspath(path)
 
-        rows = generateForRepo(path)
+        repo_name, rows = generateForRepo(path)
+        tables[repo_name] = rows
+
+    for name, rows in tables.items():
+        print(name)
         table_print(rows)
 
         html = table2html(rows)
@@ -158,3 +186,8 @@ if __name__ == "__main__":
 
         print()
         # print(html)
+
+    merged_table = merge_tables(tables)
+
+    print("Total across all repos")
+    table_print(merged_table)
