@@ -11,6 +11,7 @@ import gitstats
 
 def merge_author(a1, a2):
     # TODO: Needs to merge more properties
+    a1["commits"] += a2["commits"]
     a1["lines_added"] += a2["lines_added"]
     a1["lines_removed"] += a2["lines_removed"]
 
@@ -30,6 +31,8 @@ def getAuthorInfos(data) -> Dict[str, dict]:
 
 
 def generateForRepo(path):
+    path = os.path.abspath(path)
+
     # TODO: Could use caching to speed up
     data = gitstats.GitDataCollector()
 
@@ -52,5 +55,6 @@ def generateForRepo(path):
 
 
 if __name__ == "__main__":
-    for repopath in ["../", "../aw-core", "../aw-server", "../aw-client", "../aw-webui", "../aw-watcher-afk", "../aw-watcher-window"]:
+    for repopath in sys.argv[1:]:
         generateForRepo(repopath)
+        print("=" * 60)

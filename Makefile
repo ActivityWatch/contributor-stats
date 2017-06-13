@@ -1,3 +1,6 @@
+build: activitywatch
+	python3 main.py ./activitywatch ./activitywatch/aw-core
 
-build:
-	python3 main.py
+activitywatch:
+	git clone https://github.com/ActivityWatch/activitywatch.git
+
