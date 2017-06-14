@@ -149,6 +149,7 @@ def save_table(name, rows, directory="tables"):
     filepath = os.path.join("tables", filename)
     with open(filepath, "w") as f:
         f.write(html)
+    print("Saved table: {}".format(filepath))
 
 
 def merge_tables(tables: Dict[str, Table]):
@@ -180,9 +181,7 @@ if __name__ == "__main__":
         table_print(rows)
 
         html = table2html(rows)
-
-        table_name = foldername(path)
-        save_table(table_name, html)
+        save_table(name, html)
 
         print()
         # print(html)
