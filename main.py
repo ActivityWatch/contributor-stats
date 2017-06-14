@@ -110,8 +110,9 @@ class HTML:
         self.inline_mode = False
 
     @contextmanager
-    def tag(self, tag_type, inline=False):
-        self += "<{}>".format(tag_type)
+    def tag(self, tag_type, attr=None, inline=False):
+        tag_start = "<" + tag_type + (" " + attr if attr else "") + ">"
+        self += tag_start
         self.indent_level += 1
         yield
         self.indent_level -= 1
@@ -126,7 +127,7 @@ def table2html(rows: Table):
     html = HTML()
     keys = rows[list(rows.keys())[0]].keys()
 
-    with html.tag("table"):
+    with html.tag("table", 'class="table"'):
         # Header
         with html.tag("tr"):
             html += "<th>Name</th>"
