@@ -48,11 +48,13 @@ def getAuthorInfos(data) -> AuthorInfo:
         authorInfos[name] = _authorInfo
 
     author_merges = [("Johan Bjäreholt", "johan-bjareholt")]
-    for a1_name, a2_name in author_merges:
-        if a1_name in authorInfos and a2_name in authorInfos:
-            a1 = authorInfos.pop(a1_name)
-            a2 = authorInfos.pop(a2_name)
-            authorInfos[a1_name] = merge_author(a1, a2)
+    for keep_name, replace_name in author_merges:
+        if replace_name in authorInfos:
+            to_keep = authorInfos.pop(replace_name)
+            if keep_name in authorInfos:
+                to_merge_with = authorInfos.pop(keep_name)
+                to_keep = merge_author(to_merge_with, to_keep)
+            authorInfos[keep_name] = to_keep
 
     return authorInfos
 
@@ -168,6 +170,7 @@ def merge_tables(tables: Dict[str, Table]):
 
 
 if __name__ == "__main__":
+    # TODO: Autodetect all submodules
     tables = {}
 
     for path in sys.argv[1:]:
