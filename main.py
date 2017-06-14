@@ -134,8 +134,9 @@ def table2html(rows: Table):
                 html += "<th>{}</th>".format(key.replace("_", " ").title())
 
         # Rows
-        for row in rows.values():
+        for name, row in rows.items():
             with html.tag("tr"):
+                html += "<td>{}</td>".format(name)
                 for key in keys:
                     value = row[key]
                     if key == "active_days":
