@@ -176,6 +176,8 @@ if __name__ == "__main__":
         repo_name, rows = generateForRepo(path)
         tables[repo_name] = rows
 
+    tables["total"] = merge_tables(tables)
+
     for name, rows in tables.items():
         print(name)
         table_print(rows)
@@ -185,8 +187,3 @@ if __name__ == "__main__":
 
         print()
         # print(html)
-
-    merged_table = merge_tables(tables)
-
-    print("Total across all repos")
-    table_print(merged_table)
