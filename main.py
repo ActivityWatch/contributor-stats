@@ -17,8 +17,17 @@ logger = logging.getLogger(__name__)
 AuthorInfo = Dict[str, dict]
 Table = Dict[str, AuthorInfo]
 
+zero_row = OrderedDict(commits=0, active_days=[], lines_added=0, lines_removed=0)
 
-def merge_author(a1, a2) -> AuthorInfo:
+
+def foldername(path) -> str:
+    if os.path.isdir(path):
+        return os.path.basename(path)
+    else:
+        return os.path.dirname(path)
+
+
+def merge_author(a1: OrderedDict, a2: dict) -> AuthorInfo:
     # TODO: Needs to merge more properties
     a1["commits"] += a2["commits"]
     a1["lines_added"] += a2["lines_added"]
@@ -28,7 +37,7 @@ def merge_author(a1, a2) -> AuthorInfo:
     return a1
 
 
-def getAuthorInfos(data) -> AuthorInfo:
+def get_authorInfos(data) -> AuthorInfo:
     names = data.getAuthors()
 
     authorInfos = {}
@@ -59,15 +68,7 @@ def getAuthorInfos(data) -> AuthorInfo:
     return authorInfos
 
 
-def foldername(path) -> str:
-    if os.path.isdir(path):
-        return os.path.basename(path)
-    else:
-        return os.path.dirname(path)
-
-
-def generateForRepo(path) -> Table:
-
+def generate_from_repo(path) -> Table:
     # TODO: Could use caching to speed up
     data = gitstats.GitDataCollector()
 
@@ -81,13 +82,9 @@ def generateForRepo(path) -> Table:
     print("Generated stats for: {}".format(data.projectname))
 
     rows = {}
-    authorInfos = getAuthorInfos(data)
+    authorInfos = get_authorInfos(data)
     for name, info in authorInfos.items():
-        row = OrderedDict(commits=info["commits"],
-                          active_days=info["active_days"],
-                          lines_added=info["lines_added"],
-                          lines_removed=info["lines_removed"])
-        rows[name] = row
+        rows[name] = merge_author(zero_row.copy(), info)
 
     return data.projectname, rows
 
@@ -162,9 +159,9 @@ def merge_tables(tables: Dict[str, Table]):
         for name, row in table.items():
             names.add(name)
 
-    merged_table = defaultdict(lambda: OrderedDict(commits=0, active_days=[], lines_added=0, lines_removed=0))
-    for name in names:
-        for table in tables.values():
+    merged_table = OrderedDict([(name, zero_row.copy()) for name in names])
+    for table in tables.values():
+        for name in names:
             if name in table:
                 merged_table[name] = merge_author(merged_table[name], table[name])
 
@@ -178,10 +175,15 @@ if __name__ == "__main__":
     for path in sys.argv[1:]:
         path = os.path.abspath(path)
 
-        repo_name, rows = generateForRepo(path)
+        repo_name, rows = generate_from_repo(path)
         tables[repo_name] = rows
 
     tables["total"] = merge_tables(tables)
+
+    # Sort the tables by commits
+    for key in tables.keys():
+        print(tables[key])
+        tables[key] = OrderedDict(sorted(tables[key].items(), key=lambda item: -item[1]['commits']))
 
     for name, rows in tables.items():
         print(name)
