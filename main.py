@@ -56,7 +56,7 @@ def get_authorInfos(data) -> AuthorInfo:
         name = name.replace("å", "å")
         authorInfos[name] = _authorInfo
 
-    author_merges = [("Johan Bjäreholt", "johan-bjareholt")]
+    author_merges = [("Johan Bjäreholt", "johan-bjareholt"), ("Nikana", "nikanar")]
     for keep_name, replace_name in author_merges:
         if replace_name in authorInfos:
             to_keep = authorInfos.pop(replace_name)
