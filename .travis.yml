@@ -8,4 +8,5 @@ install:
  - true
 
 script:
+ - "make clone"
  - "make build"
