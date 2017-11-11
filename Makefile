@@ -1,4 +1,4 @@
-build:
+build: clone
 	python3 main.py ./activitywatch \
 					./activitywatch/aw-core \
 					./activitywatch/aw-server \
@@ -11,12 +11,22 @@ build:
 					./aw-webui \
 					./docs
 
-clone:
+clone: activitywatch/ aw-watcher-web/ aw-webui/ docs/ aw-client-js/
+
+activitywatch/:
 	git clone --recurse-submodules https://github.com/ActivityWatch/activitywatch.git
-	git clone --recurse-submodules https://github.com/ActivityWatch/aw-client-js.git
+
+aw-watcher-web/:
 	git clone --recurse-submodules https://github.com/ActivityWatch/aw-watcher-web.git
+
+aw-webui/:
 	git clone --recurse-submodules https://github.com/ActivityWatch/aw-webui.git
+
+docs/:
 	git clone --recurse-submodules https://github.com/ActivityWatch/docs.git
+
+aw-client-js/:
+	git clone --recurse-submodules https://github.com/ActivityWatch/aw-client-js.git
 
 clean:
 	rm -f tables/*
