@@ -1,6 +1,7 @@
 __pycache__
 activitywatch
-aw-*
+activitywatch.github.io
 docs
+aw-*
 *.html
 .*cache

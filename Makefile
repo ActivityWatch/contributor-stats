@@ -1,5 +1,6 @@
 REPOS=activitywatch \
 	  docs \
+	  activitywatch.github.io \
 	  aw-core \
 	  aw-server \
 	  aw-webui \
@@ -23,6 +24,9 @@ activitywatch:
 
 docs:
 	git clone https://github.com/ActivityWatch/docs.git
+
+activitywatch.github.io:
+	git clone https://github.com/ActivityWatch/activitywatch.github.io.git
 
 aw-%:
 	git clone https://github.com/ActivityWatch/$@.git
