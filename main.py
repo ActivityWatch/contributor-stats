@@ -7,8 +7,8 @@ import logging
 from contextlib import contextmanager
 
 original_cwd = os.getcwd()
-path = os.path.dirname(os.path.realpath(__file__))
-sys.path.append(os.path.join(path, "gitstats"))
+__path__ = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(os.path.join(__path__, "gitstats"))
 
 import gitstats
 
@@ -120,11 +120,11 @@ class HTML:
         return self
 
 
-def table2html(rows: Table):
+def table2html(rows: Table) -> str:
     html = HTML()
     keys = rows[list(rows.keys())[0]].keys()
 
-    with html.tag("table", 'class="table"'):
+    with html.tag("table", 'class="table table-sm"'):
         # Header
         with html.tag("tr"):
             html += "<th>Name</th>"
@@ -143,7 +143,7 @@ def table2html(rows: Table):
     return html.s
 
 
-def save_table(name, rows, directory="tables"):
+def save_table(name, html, directory="tables") -> None:
     if not os.path.exists(directory):
         os.makedirs(directory)
     filename = "{}.html".format(name)
@@ -155,8 +155,8 @@ def save_table(name, rows, directory="tables"):
 
 def merge_tables(tables: Dict[str, Table]):
     names = set()
-    for table_name, table in tables.items():
-        for name, row in table.items():
+    for _, table in tables.items():
+        for name, _ in table.items():
             names.add(name)
 
     merged_table = OrderedDict([(name, zero_row.copy()) for name in names])
@@ -168,7 +168,7 @@ def merge_tables(tables: Dict[str, Table]):
     return merged_table
 
 
-if __name__ == "__main__":
+def main():
     # TODO: Autodetect all submodules
     tables = {}
 
@@ -181,7 +181,7 @@ if __name__ == "__main__":
     tables["total"] = merge_tables(tables)
 
     # Sort the tables by commits
-    for key in tables.keys():
+    for key in tables:
         print(tables[key])
         tables[key] = OrderedDict(sorted(tables[key].items(), key=lambda item: -item[1]['commits']))
 
@@ -194,3 +194,7 @@ if __name__ == "__main__":
 
         print()
         # print(html)
+
+
+if __name__ == "__main__":
+    main()

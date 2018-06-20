@@ -1,37 +1,34 @@
+REPOS=activitywatch \
+	  docs \
+	  aw-core \
+	  aw-server \
+	  aw-webui \
+	  aw-qt \
+	  aw-client \
+	  aw-client-js \
+	  aw-client-rust \
+	  aw-watcher-web \
+	  aw-watcher-afk \
+	  aw-watcher-window \
+	  aw-watcher-vim \
+	  aw-watcher-vscode
+
 build: clone
-	python3 main.py ./activitywatch \
-					./activitywatch/aw-core \
-					./activitywatch/aw-server \
-					./activitywatch/aw-client \
-					./activitywatch/aw-qt \
-					./activitywatch/aw-watcher-afk \
-					./activitywatch/aw-watcher-window \
-					./aw-client-js \
-					./aw-watcher-web \
-					./aw-webui \
-					./docs
+	python3 main.py ${REPOS}
 
-clone: activitywatch/ aw-watcher-web/ aw-webui/ docs/ aw-client-js/
+clone: ${REPOS}
 
-activitywatch/:
-	git clone --recurse-submodules https://github.com/ActivityWatch/activitywatch.git
+activitywatch:
+	git clone https://github.com/ActivityWatch/activitywatch.git
 
-aw-watcher-web/:
-	git clone --recurse-submodules https://github.com/ActivityWatch/aw-watcher-web.git
+docs:
+	git clone https://github.com/ActivityWatch/docs.git
 
-aw-webui/:
-	git clone --recurse-submodules https://github.com/ActivityWatch/aw-webui.git
-
-docs/:
-	git clone --recurse-submodules https://github.com/ActivityWatch/docs.git
-
-aw-client-js/:
-	git clone --recurse-submodules https://github.com/ActivityWatch/aw-client-js.git
+aw-%:
+	git clone https://github.com/ActivityWatch/$@.git
 
 clean:
 	rm -f tables/*
 	rm -rf activitywatch
-	rm -rf aw-client-js
-	rm -rf aw-watcher-web
-	rm -rf aw-webui
 	rm -rf docs
+	rm -rf aw-*
