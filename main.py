@@ -1,9 +1,10 @@
 import sys
 import os
-from typing import Dict, List
-from collections import OrderedDict, defaultdict
 import unicodedata
 import logging
+from pathlib import Path
+from typing import Dict, List
+from collections import OrderedDict, defaultdict
 from contextlib import contextmanager
 
 original_cwd = os.getcwd()
@@ -69,7 +70,7 @@ def get_authorInfos(data) -> AuthorInfo:
 
 
 def generate_from_repo(path) -> Table:
-    # TODO: Could use caching to speed up
+    # TODO: Could use caching to speed up (not much point since it usually runs in CI)
     data = gitstats.GitDataCollector()
 
     # `data.collect` always gets the current directory for whatever reason,
@@ -169,13 +170,16 @@ def merge_tables(tables: Dict[str, Table]):
 
 
 def main():
-    # TODO: Autodetect all submodules
     tables = {}
 
-    for path in sys.argv[1:]:
-        path = os.path.abspath(path)
+    if len(sys.argv) == 2:
+        p = Path(sys.argv[1])
+    else:
+        p = Path("./repos")
+    repos = list(p.parent for p in p.glob("./*/.git"))
 
-        repo_name, rows = generate_from_repo(path)
+    for path in repos:
+        repo_name, rows = generate_from_repo(str(path))
         tables[repo_name] = rows
 
     tables["total"] = merge_tables(tables)

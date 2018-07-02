@@ -14,25 +14,17 @@ REPOS=activitywatch \
 	  aw-watcher-vim \
 	  aw-watcher-vscode
 
+
 build: clone
-	python3 main.py ${REPOS}
+	python3 main.py
 
-clone: ${REPOS}
+clone: $(patsubst %, repos/%, $(REPOS))
 
-activitywatch:
-	git clone https://github.com/ActivityWatch/activitywatch.git
+reponame = $(word 2,$(subst /, ,$1))
 
-docs:
-	git clone https://github.com/ActivityWatch/docs.git
-
-activitywatch.github.io:
-	git clone https://github.com/ActivityWatch/activitywatch.github.io.git
-
-aw-%:
-	git clone https://github.com/ActivityWatch/$@.git
+repos/%:
+	git clone https://github.com/ActivityWatch/$(call reponame,$@).git $@
 
 clean:
 	rm -f tables/*
-	rm -rf activitywatch
-	rm -rf docs
-	rm -rf aw-*
+	rm -rf repos/*
