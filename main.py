@@ -57,7 +57,11 @@ def get_authorInfos(data) -> AuthorInfo:
         name = name.replace("å", "å")
         authorInfos[name] = _authorInfo
 
-    author_merges = [("Johan Bjäreholt", "johan-bjareholt"), ("Nikana", "nikanar")]
+    author_merges = [
+        ("Johan Bjäreholt", "johan-bjareholt"),
+        ("Nikana", "nikanar"),
+        ("Johannes Ahnlide", "ahnlabb"),
+    ]
     for keep_name, replace_name in author_merges:
         if replace_name in authorInfos:
             to_keep = authorInfos.pop(replace_name)
@@ -186,7 +190,6 @@ def main():
 
     # Sort the tables by commits
     for key in tables:
-        print(tables[key])
         tables[key] = OrderedDict(sorted(tables[key].items(), key=lambda item: -item[1]['commits']))
 
     for name, rows in tables.items():
