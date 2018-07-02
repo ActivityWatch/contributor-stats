@@ -1,29 +1,38 @@
-REPOS=activitywatch \
-	  docs \
-	  activitywatch.github.io \
-	  aw-core \
-	  aw-server \
-	  aw-webui \
-	  aw-qt \
-	  aw-client \
-	  aw-client-js \
-	  aw-client-rust \
-	  aw-watcher-web \
-	  aw-watcher-afk \
-	  aw-watcher-window \
-	  aw-watcher-vim \
-	  aw-watcher-vscode
+REPOS_AW=ActivityWatch/activitywatch \
+		 ActivityWatch/docs \
+		 ActivityWatch/activitywatch.github.io \
+		 ActivityWatch/aw-core \
+		 ActivityWatch/aw-server \
+		 ActivityWatch/aw-webui \
+		 ActivityWatch/aw-qt \
+		 ActivityWatch/aw-client \
+		 ActivityWatch/aw-client-js \
+		 ActivityWatch/aw-client-rust \
+		 ActivityWatch/aw-watcher-web \
+		 ActivityWatch/aw-watcher-afk \
+		 ActivityWatch/aw-watcher-window \
+		 ActivityWatch/aw-watcher-vim \
+		 ActivityWatch/aw-watcher-vscode
 
+REPOS_SL=SuperuserLabs/thankful \
+		 SuperuserLabs/thankful-contracts \
+		 SuperuserLabs/thankful-server \
+		 SuperuserLabs/superuserlabs.github.io
 
-build: clone
-	python3 main.py
+build-aw: clone-aw
+	python3 main.py $(addprefix repos/,$(REPOS_AW))
 
-clone: $(patsubst %, repos/%, $(REPOS))
+build-sl: clone-sl
+	python3 main.py $(addprefix repos/,$(REPOS_SL))
 
-reponame = $(word 2,$(subst /, ,$1))
+clone-aw: $(patsubst %, repos/%, $(REPOS_AW))
+clone-sl: $(patsubst %, repos/%, $(REPOS_SL))
+
+repoorg = $(word 2,$(subst /, ,$1))
+reponame = $(word 3,$(subst /, ,$1))
 
 repos/%:
-	git clone https://github.com/ActivityWatch/$(call reponame,$@).git $@
+	git clone https://github.com/$(call repoorg,$@)/$(call reponame,$@).git $@
 
 clean:
 	rm -f tables/*

@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Dict, List
 from collections import OrderedDict, defaultdict
 from contextlib import contextmanager
+from itertools import chain
 
 original_cwd = os.getcwd()
 __path__ = os.path.dirname(os.path.realpath(__file__))
@@ -57,7 +58,11 @@ def get_authorInfos(data) -> AuthorInfo:
         name = name.replace("å", "å")
         authorInfos[name] = _authorInfo
 
-    author_merges = [("Johan Bjäreholt", "johan-bjareholt"), ("Nikana", "nikanar")]
+    author_merges = [
+        ("Johan Bjäreholt", "johan-bjareholt"),
+        ("Nikana", "nikanar"),
+        ("Johannes Ahnlide", "ahnlabb"),
+    ]
     for keep_name, replace_name in author_merges:
         if replace_name in authorInfos:
             to_keep = authorInfos.pop(replace_name)
@@ -172,11 +177,17 @@ def merge_tables(tables: Dict[str, Table]):
 def main():
     tables = {}
 
-    if len(sys.argv) == 2:
-        p = Path(sys.argv[1])
+    if len(sys.argv) >= 1:
+        repos = [Path(d) for d in sys.argv[1:]]
     else:
+        print("No arguments given, looking in repos/ folder")
         p = Path("./repos")
-    repos = list(p.parent for p in p.glob("./*/.git"))
+        # Look one and two levels deep
+        # Second level might only really be necessary, but meh
+        repos = list(p.parent for p in p.glob("./*/.git"))
+        repos += list(p.parent for p in p.glob("./*/*/.git") if p.parent not in repos)
+
+    print("Found repos: {}".format([str(r) for r in repos]))
 
     for path in repos:
         repo_name, rows = generate_from_repo(str(path))
@@ -186,7 +197,6 @@ def main():
 
     # Sort the tables by commits
     for key in tables:
-        print(tables[key])
         tables[key] = OrderedDict(sorted(tables[key].items(), key=lambda item: -item[1]['commits']))
 
     for name, rows in tables.items():
