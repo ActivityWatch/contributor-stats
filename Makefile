@@ -3,8 +3,10 @@ REPOS_AW=ActivityWatch/activitywatch \
 		 ActivityWatch/activitywatch.github.io \
 		 ActivityWatch/aw-core \
 		 ActivityWatch/aw-server \
+		 ActivityWatch/aw-server-rust \
 		 ActivityWatch/aw-webui \
 		 ActivityWatch/aw-qt \
+		 ActivityWatch/aw-android \
 		 ActivityWatch/aw-client \
 		 ActivityWatch/aw-client-js \
 		 ActivityWatch/aw-client-rust \
