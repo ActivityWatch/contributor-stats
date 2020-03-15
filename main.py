@@ -3,10 +3,9 @@ import os
 import unicodedata
 import logging
 from pathlib import Path
-from typing import Dict, List
-from collections import OrderedDict, defaultdict
+from typing import Dict, Tuple, Any, MutableMapping
+from collections import OrderedDict
 from contextlib import contextmanager
-from itertools import chain
 
 original_cwd = os.getcwd()
 __path__ = os.path.dirname(os.path.realpath(__file__))
@@ -16,8 +15,8 @@ import gitstats
 
 logger = logging.getLogger(__name__)
 
-AuthorInfo = Dict[str, dict]
-Table = Dict[str, AuthorInfo]
+AuthorInfo = MutableMapping[str, dict]
+Table = MutableMapping[str, AuthorInfo]
 
 zero_row = OrderedDict(commits=0, active_days=[], lines_added=0, lines_removed=0)
 
@@ -29,7 +28,7 @@ def foldername(path) -> str:
         return os.path.dirname(path)
 
 
-def merge_author(a1: OrderedDict, a2: dict) -> AuthorInfo:
+def merge_author(a1: MutableMapping, a2: MutableMapping) -> AuthorInfo:
     # TODO: Needs to merge more properties
     a1["commits"] += a2["commits"]
     a1["lines_added"] += a2["lines_added"]
@@ -59,22 +58,25 @@ def get_authorInfos(data) -> AuthorInfo:
         authorInfos[name] = _authorInfo
 
     author_merges = [
-        ("Johan Bjäreholt", "johan-bjareholt"),
-        ("Nikana", "nikanar"),
-        ("Johannes Ahnlide", "ahnlabb"),
+        ("Erik Bjäreholt", ["Erik BjÃ¤reholt", "Erik Bjareholt"]),
+        ("Johan Bjäreholt", ["johan-bjareholt"]),
+        ("Nikana", ["nikanar"]),
+        ("Johannes Ahnlide", ["ahnlabb"]),
+        ("Nicolae Stroncea", ["nicolae-stroncea", "Nicolae"]),
     ]
-    for keep_name, replace_name in author_merges:
-        if replace_name in authorInfos:
-            to_keep = authorInfos.pop(replace_name)
-            if keep_name in authorInfos:
-                to_merge_with = authorInfos.pop(keep_name)
-                to_keep = merge_author(to_merge_with, to_keep)
-            authorInfos[keep_name] = to_keep
+    for name, aliases in author_merges:
+        for alias in aliases:
+            if alias in authorInfos:
+                to_keep = authorInfos.pop(alias)
+                if name in authorInfos:
+                    to_merge_with = authorInfos.pop(name)
+                    to_keep = merge_author(to_merge_with, to_keep)
+                authorInfos[name] = to_keep
 
     return authorInfos
 
 
-def generate_from_repo(path) -> Table:
+def generate_from_repo(path) -> Tuple[str, Table]:
     # TODO: Could use caching to speed up (not much point since it usually runs in CI)
     data = gitstats.GitDataCollector()
 
@@ -142,7 +144,7 @@ def table2html(rows: Table) -> str:
             with html.tag("tr"):
                 html += "<td>{}</td>".format(name)
                 for key in keys:
-                    value = row[key]
+                    value: Any = row[key]
                     if key == "active_days":
                         value = len(value)
                     html += "<td>{}</td>".format(value)
@@ -165,7 +167,7 @@ def merge_tables(tables: Dict[str, Table]):
         for name, _ in table.items():
             names.add(name)
 
-    merged_table = OrderedDict([(name, zero_row.copy()) for name in names])
+    merged_table: Table = OrderedDict([(name, dict(**zero_row)) for name in names])
     for table in tables.values():
         for name in names:
             if name in table:
