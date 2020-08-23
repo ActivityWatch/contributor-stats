@@ -49,7 +49,7 @@ def get_authorInfos(data) -> AuthorInfo:
         #   bool('å' == "å")  # False
         # This weird unicode char was in Måns name, so now we have to unicode normalize everything.
         # Never done this before, so thanks for making me learn Måns, or perhaps should I write Måns.
-        _new_name = unicodedata.normalize('NFKC', name)
+        _new_name = unicodedata.normalize("NFKC", name)
         if _new_name != name:
             logger.info("Name '{}' was normalized to '{}'".format(name, _new_name))
             name = _new_name
@@ -62,7 +62,10 @@ def get_authorInfos(data) -> AuthorInfo:
         ("Johan Bjäreholt", ["johan-bjareholt"]),
         ("Nikana", ["nikanar"]),
         ("Johannes Ahnlide", ["ahnlabb"]),
-        ("Nicolae Stroncea", ["nicolae-stroncea", "Nicolae"]),
+        ("Nicolae Stroncea", ["nicolae-stroncea", "Nicolae", "nicolae"]),
+        ("Bill Ang Li", ["Bill-linux"]),
+        ("dependabot[bot]", ["dependabot-preview[bot]"]),
+        ("Otto-AA", ["A_A"]),
     ]
     for name, aliases in author_merges:
         for alias in aliases:
@@ -99,12 +102,20 @@ def generate_from_repo(path) -> Tuple[str, Table]:
 
 def table_print(rows: Table):
     header = "{name:<21} | {commits:<8} | {activedays:<11} | {adds:<8} | {deletes:<8}".format(
-             name="Name", commits="Commits", activedays="Active days", adds="Added", deletes="Removed")
+        name="Name",
+        commits="Commits",
+        activedays="Active days",
+        adds="Added",
+        deletes="Removed",
+    )
     print(header)
     print("-" * len(header))
     for name, row in rows.items():
-        print("{name:<21} | {commits:<8} | {n_active_days:<11} | +{lines_added:<7} | -{lines_removed:<7}".format(
-              name=name, n_active_days=len(row["active_days"]), **row))
+        print(
+            "{name:<21} | {commits:<8} | {n_active_days:<11} | +{lines_added:<7} | -{lines_removed:<7}".format(
+                name=name, n_active_days=len(row["active_days"]), **row
+            )
+        )
     print("-" * len(header))
 
 
@@ -199,7 +210,9 @@ def main():
 
     # Sort the tables by commits
     for key in tables:
-        tables[key] = OrderedDict(sorted(tables[key].items(), key=lambda item: -item[1]['commits']))
+        tables[key] = OrderedDict(
+            sorted(tables[key].items(), key=lambda item: -item[1]["commits"])
+        )
 
     for name, rows in tables.items():
         print(name)
