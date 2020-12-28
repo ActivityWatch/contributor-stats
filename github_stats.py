@@ -6,10 +6,12 @@ from datetime import datetime
 from collections import defaultdict
 from pprint import pprint
 
+import numpy as np
+import pandas as pd
 from github import Github
 
 logger = logging.getLogger(__name__)
-since = datetime(2020, 11, 1)
+since = datetime(2020, 1, 1)
 
 
 def _is_bot(username):
@@ -73,28 +75,27 @@ def _submitted_prs(repo):
     return count
 
 
-def _merged_prs(repo):
-    # returns the number of merged PRs
-    # FIXME: Takes a long time to run
+def _merged_prs_by_user(repo) -> dict[str, int]:
+    # returns the number of merged PRs per user
     logger.info(" - Getting merged PRs...")
-    merged = 0
+    merged_prs_by_user = defaultdict(int)
     for pr in repo.get_pulls(state="closed", sort="updated", direction="desc"):
-        if not pr.merged or pr.merged_at < since:
-            continue
         if pr.updated_at < since:
             break
-        merged += 1
-    return merged
+        if not pr.merged or pr.merged_at < since:
+            continue
+        merged_prs_by_user[pr.user.login] += 1
+    return merged_prs_by_user
 
 
 def main() -> None:
     GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
     gh = Github(GITHUB_TOKEN)
 
-    repostats: Dict[str, dict] = {}
+    repostats: dict[str, dict] = {}
 
     for repo in gh.get_user("ActivityWatch").get_repos():
-        if repo.name not in ["activitywatch", "docs"]:
+        if repo.name not in ["activitywatch", "docs", "aw-server-rust"]:
             continue
         logger.info(f"Processing for {repo.name}...")
 
@@ -103,22 +104,57 @@ def main() -> None:
             "issues_by_user": _issues_by_user(repo),
             "pr_comments_by_user": _pr_comments_by_user(repo),
             "issues": _issues_stats(repo),
-            # "merged_prs": _merged_prs(repo),
+            "merged_prs_by_user": _merged_prs_by_user(repo),
             "submitted_prs": _submitted_prs(repo),
         }
 
     # pprint(repostats)
     # FIXME: pprint should use sort_dicts=False (added in Python 3.8)
-    pprint(repostats["activitywatch"])
+    # pprint(repostats["activitywatch"])
 
     all_users = set(
         user
         for repo in repostats.values()
         for user in (
-            set(repo["comments_by_user"].keys()) | set(repo["issues_by_user"].keys())
+            set(repo["comments_by_user"].keys())
+            | set(repo["issues_by_user"].keys())
+            | set(repo["pr_comments_by_user"].keys())
+            | set(repo["merged_prs_by_user"].keys())
         )
     )
     print(f"Total contributors: {len(all_users)}")
+
+    # Compute stats for each repo
+    for name, stats in repostats.items():
+        df = pd.DataFrame(
+            [
+                (
+                    user,
+                    stats["issues_by_user"].get(user, 0),
+                    stats["comments_by_user"].get(user, 0),
+                    stats["pr_comments_by_user"].get(user, 0),
+                    stats["merged_prs_by_user"].get(user, 0),
+                )
+                for user in all_users
+            ],
+            columns=["user", "issues", "comments", "pr_comments", "merged_prs"],
+        )
+        df["total"] = (
+            df["issues"] + df["comments"] + df["pr_comments"] + df["merged_prs"]
+        )
+        df = df.sort_values("total", ascending=False)
+        df = df.set_index("user")
+        stats["df"] = df
+
+    # Sum all repo stats into one dataframe
+    df = None
+    for stats in repostats.values():
+        if df is None:
+            df = stats["df"]
+        else:
+            df = df.combine(stats["df"], lambda s1, s2: s1 + s2)
+    df = df.sort_values("total", ascending=False)
+    print(df)
 
 
 if __name__ == "__main__":
