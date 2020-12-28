@@ -5,7 +5,6 @@ import logging
 from datetime import datetime
 from collections import defaultdict
 from pprint import pprint
-from typing import Dict
 
 from github import Github
 
@@ -21,9 +20,9 @@ def _sort_dict_by_value(d: dict) -> dict:
     return {k: v for k, v in sorted(d.items(), key=lambda item: item[1])}
 
 
-def _comments_by_user(repo) -> Dict[str, int]:
+def _comments_by_user(repo) -> dict[str, int]:
     logger.info(" - Getting comments by user...")
-    comments_by_user: Dict[str, int] = defaultdict(int)
+    comments_by_user: dict[str, int] = defaultdict(int)
     for comment in repo.get_issues_comments(since=since):
         if _is_bot(comment.user.login):
             continue
@@ -31,9 +30,9 @@ def _comments_by_user(repo) -> Dict[str, int]:
     return _sort_dict_by_value(comments_by_user)
 
 
-def _issues_by_user(repo) -> Dict[str, int]:
+def _issues_by_user(repo) -> dict[str, int]:
     logger.info(" - Getting issues by user...")
-    issues_by_user: Dict[str, int] = defaultdict(int)
+    issues_by_user: dict[str, int] = defaultdict(int)
     for issue in repo.get_issues(state="all", since=since):
         # TODO: Don't count issues tagged as invalid
         if issue.created_at < since:
@@ -42,15 +41,15 @@ def _issues_by_user(repo) -> Dict[str, int]:
     return _sort_dict_by_value(issues_by_user)
 
 
-def _pr_comments_by_user(repo) -> Dict[str, int]:
+def _pr_comments_by_user(repo) -> dict[str, int]:
     logger.info(" - Getting PR comments by user...")
-    pr_comments_by_user: Dict[str, int] = defaultdict(int)
+    pr_comments_by_user: dict[str, int] = defaultdict(int)
     for pr_comment in repo.get_pulls_comments(since=since):
         pr_comments_by_user[pr_comment.user.login] += 1
     return _sort_dict_by_value(pr_comments_by_user)
 
 
-def _issues_stats(repo) -> Dict[str, int]:
+def _issues_stats(repo) -> dict[str, int]:
     # return the number of closed issues
     logger.info(" - Getting opened/closed issues...")
     opened = 0
