@@ -2,7 +2,7 @@
 
 set -e
 
-rootdir=../../
+rootdir=../../../
 tmpdir=.cache/gource
 rm -rf $tmpdir
 mkdir -p $tmpdir
@@ -100,7 +100,7 @@ if [ -x .git/avatars ]; then
 fi
 
 # Rename avatars to suit committer name
-cp .git/avatar/johan-bjareholt.png '.git/avatar/Johan Bjäreholt.png'
+cp ../.git/avatar/johan-bjareholt.png '../.git/avatar/Johan Bjäreholt.png'
 
 # Resolutions:
 #  - 2560x1440 (for upload)
@@ -116,7 +116,7 @@ res_low=1280x720
 gource_options=(
     --title 'ActivityWatch (https://activitywatch.net)'
     --caption-file gource-captions.txt
-    --user-image-dir .git/avatar/
+    --user-image-dir ../.git/avatar/
     --key --file-idle-time 0
     --seconds-per-day 0.1 --time-scale 1
     --max-user-speed 1000
@@ -139,7 +139,7 @@ gource_options=(
 )
 
 echo "Visualizing"
-#gource "${gource_options[@]}"
+gource "${gource_options[@]}"
 
 # To render video
 gource "${gource_options[@]}" -o - | ffmpeg -y -r 60 -f image2pipe -vcodec ppm -i - -vcodec libx264 -preset ultrafast -pix_fmt yuv420p -crf 1 -threads 0 -bf 0 gource.mp4

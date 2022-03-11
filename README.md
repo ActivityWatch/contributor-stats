@@ -12,6 +12,7 @@ This also includes scripts to produce a visualization of the commit history with
 Usage:
 
 ```
+cd video
 ./gource-output.sh
 ```
 
