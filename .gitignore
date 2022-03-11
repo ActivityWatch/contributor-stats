@@ -3,3 +3,6 @@ __pycache__
 .*cache
 repos/
 *.mp4
+.env
+*.mp3
+*.kdenlive
