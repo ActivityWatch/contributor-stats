@@ -3,8 +3,9 @@ from __future__ import annotations
 import os
 import logging
 import functools
+import itertools
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, date
 from collections import defaultdict
 from typing import Callable, Any
 
@@ -127,6 +128,32 @@ def _merged_prs_by_user(repo_fullname: str, since: datetime) -> dict[str, int]:
     return merged_prs_by_user
 
 
+# "I" wrote this with Github Copilot, don't trust it...
+@memory.cache
+def _get_active_days_by_user(
+    repo_fullname: str, since: datetime
+) -> dict[str, set[date]]:
+    # return a dict with the active dates per contributor
+    logger.info(" - Getting active days by user...")
+    repo: Repository = gh.get_repo(repo_fullname)
+    active_days_by_user = defaultdict(set)
+    for issue in repo.get_issues(state="all", since=since):
+        if issue.created_at < since:
+            continue
+        active_days_by_user[issue.user.login].add(issue.created_at.date())
+    for pr in repo.get_pulls(state="all", sort="created", direction="desc"):
+        if pr.created_at < since:
+            continue
+        active_days_by_user[pr.user.login].add(pr.created_at.date())
+    for pr in repo.get_pulls(state="closed", sort="updated", direction="desc"):
+        if pr.updated_at < since:
+            continue
+        if not pr.merged or pr.merged_at < since:
+            continue
+        active_days_by_user[pr.user.login].add(pr.merged_at.date())
+    return active_days_by_user
+
+
 def main() -> None:
     GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
     global gh
@@ -162,6 +189,9 @@ def main() -> None:
             "issues": _issues_stats(repo.full_name, since=since),
             "merged_prs_by_user": _merged_prs_by_user(repo.full_name, since=since),
             "submitted_prs": _submitted_prs(repo.full_name, since=since),
+            "active_days_by_user": _get_active_days_by_user(
+                repo.full_name, since=since
+            ),
         }
 
     # pprint(repostats)
@@ -189,11 +219,22 @@ def main() -> None:
                     stats["issues_by_user"].get(user, 0),
                     stats["comments_by_user"].get(user, 0),
                     stats["pr_comments_by_user"].get(user, 0),
+                    stats["submitted_prs"],
                     stats["merged_prs_by_user"].get(user, 0),
+                    # active days
+                    stats["active_days_by_user"].get(user, set()),
                 )
                 for user in all_users
             ],
-            columns=["user", "issues", "comments", "pr_comments", "merged_prs"],
+            columns=[
+                "user",
+                "issues",
+                "comments",
+                "pr_comments",
+                "submitted_prs",
+                "merged_prs",
+                "active_days_by_user",
+            ],
         )
         df["total"] = (
             df["issues"] + df["comments"] + df["pr_comments"] + df["merged_prs"]
@@ -202,17 +243,67 @@ def main() -> None:
         df = df.set_index("user")
         stats["df"] = df
 
-    # Sum all repo stats into one dataframe
-    df = None
-    for stats in repostats.values():
-        if df is None:
-            df = stats["df"]
-        else:
-            df = df.combine(stats["df"], lambda s1, s2: s1 + s2)
-    df = df.sort_values("total", ascending=False)
+    def df_total(repostats: dict[str, pd.DataFrame]) -> pd.DataFrame:
+        # Sum all repo stats into one dataframe
+        df = None
+        for stats in repostats.values():
+            if df is None:
+                df = stats["df"]
+            else:
+                # print(df.columns)
+                # print(stats["df"].columns)
+                # output: ['issues', 'comments', 'pr_comments', 'submitted_prs', 'merged_prs', 'active_days_by_user', 'total']
+
+                # note that active_days_by_user is a set, so it's not additive
+
+                df["issues"] += stats["df"]["issues"]
+                df["comments"] += stats["df"]["comments"]
+                df["pr_comments"] += stats["df"]["pr_comments"]
+                df["merged_prs"] += stats["df"]["merged_prs"]
+                df["submitted_prs"] += stats["df"]["submitted_prs"]
+                df["total"] += (
+                    stats["df"]["issues"]
+                    + stats["df"]["comments"]
+                    + stats["df"]["pr_comments"]
+                    + stats["df"]["merged_prs"]
+                )
+
+                # here the sets in active_days_by_user are added together too
+                days_by_name = defaultdict(set)
+                for name, days in itertools.chain(
+                    df["active_days_by_user"].iteritems(),
+                    stats["df"]["active_days_by_user"].iteritems(),
+                ):
+                    if isinstance(days, float):
+                        continue
+                    days_by_name[name].update(days)
+
+                df["active_days_by_user"] = pd.Series(
+                    list(days_by_name.values()),
+                    index=list(days_by_name.keys()),
+                    dtype=object,
+                )
+
+        df["no_active_days_by_user"] = df["active_days_by_user"].apply(lambda x: len(x))
+        df = df.sort_values("total", ascending=True)
+        return df
+
+    df = df_total(repostats)
 
     pd.set_option("display.max_rows", None, "display.max_columns", None)
-    print(df)
+    print(
+        df[
+            [
+                "issues",
+                "comments",
+                "pr_comments",
+                "total",
+                "merged_prs",
+                "no_active_days_by_user",
+            ]
+        ].iloc[-15:]
+    )
+    print(df.columns)
 
     savepath = Path("github-activity-table.html")
     with savepath.open("w") as f:
