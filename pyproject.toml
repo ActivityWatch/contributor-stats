@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "contributor-stats"
+version = "0.1.0"
+description = "Generates statistics for contributors from git history and GitHub activity."
+authors = ["Erik Bjäreholt <erik@bjareho.lt>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pandas = "^1.4.1"
+PyGithub = "^1.55"
+numpy = "^1.22.3"
+tqdm = "^4.63.0"
+click = "^8.0.4"
+
+[tool.poetry.dev-dependencies]
+black = "^22.1.0"
+mypy = "*"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
