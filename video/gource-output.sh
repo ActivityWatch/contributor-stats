@@ -87,6 +87,9 @@ sed -i -E 's/Erik Bj.{1,4}reholt/Erik Bjäreholt/g' $gourcelog
 sed -i 's/dependabot.+/dependabot/g' $gourcelog
 sed -i 's/Bill-linux/Bill Ang Li/g' $gourcelog
 
+# Remove names which have been spamming commits in CI (accidental bad CI config)
+sed -i 's/.*ErikBjare.*//g' $gourcelog
+
 # Prepare avatars
 # TODO: Doesn't fetch avatars from all repos (only the ones with most contributors)
 # run for contributor-stats repo, initialized .git/avatars folder
