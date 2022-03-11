@@ -2,16 +2,24 @@ from __future__ import annotations
 
 import os
 import logging
+import functools
+from pathlib import Path
 from datetime import datetime
 from collections import defaultdict
-from pprint import pprint
+from typing import Callable, Any
 
-import numpy as np
 import pandas as pd
-from github import Github
+import github  # pygithub
+from github import Github, Repository
+from joblib import Memory
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
-since = datetime(2020, 1, 1)
+
+gh: Github
+
+# FIXME: Use path relative to script, not working dir
+memory = Memory("./.cache/github-stats")
 
 
 def _is_bot(username):
@@ -22,8 +30,29 @@ def _sort_dict_by_value(d: dict) -> dict:
     return {k: v for k, v in sorted(d.items(), key=lambda item: item[1])}
 
 
-def _comments_by_user(repo) -> dict[str, int]:
+# TODO: remove?
+def _cache_repo(f: Callable[[github.Repository, ...], Any]):
+    """cache a function taking a repo as first argument"""
+
+    @functools.wraps(f)
+    def g(*a, **kw):
+        repo = a[0]
+        a = a[1:]
+
+        @functools.wraps(f)
+        @memory.cache
+        def h(repo_fullname, *a, **kw):
+            return f(repo, *a, **kw)
+
+        return h(repo.full_name, *a, **kw)
+
+    return g
+
+
+@memory.cache
+def _comments_by_user(repo_fullname: str, since: datetime) -> dict[str, int]:
     logger.info(" - Getting comments by user...")
+    repo: Repository = gh.get_repo(repo_fullname)
     comments_by_user: dict[str, int] = defaultdict(int)
     for comment in repo.get_issues_comments(since=since):
         if _is_bot(comment.user.login):
@@ -32,8 +61,10 @@ def _comments_by_user(repo) -> dict[str, int]:
     return _sort_dict_by_value(comments_by_user)
 
 
-def _issues_by_user(repo) -> dict[str, int]:
+@memory.cache
+def _issues_by_user(repo_fullname: str, since: datetime) -> dict[str, int]:
     logger.info(" - Getting issues by user...")
+    repo: Repository = gh.get_repo(repo_fullname)
     issues_by_user: dict[str, int] = defaultdict(int)
     for issue in repo.get_issues(state="all", since=since):
         # TODO: Don't count issues tagged as invalid
@@ -43,17 +74,21 @@ def _issues_by_user(repo) -> dict[str, int]:
     return _sort_dict_by_value(issues_by_user)
 
 
-def _pr_comments_by_user(repo) -> dict[str, int]:
+@memory.cache
+def _pr_comments_by_user(repo_fullname: str, since: datetime) -> dict[str, int]:
     logger.info(" - Getting PR comments by user...")
+    repo: Repository = gh.get_repo(repo_fullname)
     pr_comments_by_user: dict[str, int] = defaultdict(int)
     for pr_comment in repo.get_pulls_comments(since=since):
         pr_comments_by_user[pr_comment.user.login] += 1
     return _sort_dict_by_value(pr_comments_by_user)
 
 
-def _issues_stats(repo) -> dict[str, int]:
+@memory.cache
+def _issues_stats(repo_fullname: str, since: datetime) -> dict[str, int]:
     # return the number of closed issues
     logger.info(" - Getting opened/closed issues...")
+    repo: Repository = gh.get_repo(repo_fullname)
     opened = 0
     closed = 0
     for issue in repo.get_issues(state="all", since=since):
@@ -64,9 +99,11 @@ def _issues_stats(repo) -> dict[str, int]:
     return {"opened": opened, "closed": closed}
 
 
-def _submitted_prs(repo):
+@memory.cache
+def _submitted_prs(repo_fullname: str, since: datetime):
     # returns the number of merged PRs
     logger.info(" - Getting submitted PRs...")
+    repo: Repository = gh.get_repo(repo_fullname)
     count = 0
     for pr in repo.get_pulls(state="all", sort="created", direction="desc"):
         if pr.created_at < since:
@@ -75,9 +112,11 @@ def _submitted_prs(repo):
     return count
 
 
-def _merged_prs_by_user(repo) -> dict[str, int]:
+@memory.cache
+def _merged_prs_by_user(repo_fullname: str, since: datetime) -> dict[str, int]:
     # returns the number of merged PRs per user
     logger.info(" - Getting merged PRs...")
+    repo: Repository = gh.get_repo(repo_fullname)
     merged_prs_by_user = defaultdict(int)
     for pr in repo.get_pulls(state="closed", sort="updated", direction="desc"):
         if pr.updated_at < since:
@@ -90,22 +129,39 @@ def _merged_prs_by_user(repo) -> dict[str, int]:
 
 def main() -> None:
     GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+    global gh
     gh = Github(GITHUB_TOKEN)
+    since = datetime(2012, 1, 1)
 
     repostats: dict[str, dict] = {}
 
-    for repo in gh.get_user("ActivityWatch").get_repos():
-        if repo.name not in ["activitywatch", "docs", "aw-server-rust"]:
+    for repo in tqdm(list(gh.get_user("ActivityWatch").get_repos())):
+        if repo.name not in [
+            "activitywatch",
+            "activitywatch-old",
+            "docs",
+            "aw-core",
+            "aw-client",
+            "aw-client-js",
+            "aw-server",
+            "aw-server-rust",
+            "aw-watcher-window",
+            "aw-watcher-afk",
+            "aw-watcher-input",
+            "aw-webui",
+            "aw-qt",
+            "activitywatch.github.io",
+        ]:
             continue
         logger.info(f"Processing for {repo.name}...")
 
         repostats[repo.name] = {
-            "comments_by_user": _comments_by_user(repo),
-            "issues_by_user": _issues_by_user(repo),
-            "pr_comments_by_user": _pr_comments_by_user(repo),
-            "issues": _issues_stats(repo),
-            "merged_prs_by_user": _merged_prs_by_user(repo),
-            "submitted_prs": _submitted_prs(repo),
+            "comments_by_user": _comments_by_user(repo.full_name, since=since),
+            "issues_by_user": _issues_by_user(repo.full_name, since=since),
+            "pr_comments_by_user": _pr_comments_by_user(repo.full_name, since=since),
+            "issues": _issues_stats(repo.full_name, since=since),
+            "merged_prs_by_user": _merged_prs_by_user(repo.full_name, since=since),
+            "submitted_prs": _submitted_prs(repo.full_name, since=since),
         }
 
     # pprint(repostats)
@@ -154,7 +210,16 @@ def main() -> None:
         else:
             df = df.combine(stats["df"], lambda s1, s2: s1 + s2)
     df = df.sort_values("total", ascending=False)
+
+    pd.set_option("display.max_rows", None, "display.max_columns", None)
     print(df)
+
+    savepath = Path("github-activity-table.html")
+    with savepath.open("w") as f:
+        html = df.to_html()
+        f.write(html)
+    print(f"Written to {savepath}")
+    print("Done!")
 
 
 if __name__ == "__main__":
