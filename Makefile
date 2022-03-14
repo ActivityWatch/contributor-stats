@@ -39,3 +39,6 @@ repos/%:
 clean:
 	rm -f tables/*
 	rm -rf repos/*
+
+test:
+	python3 -m pytest tests/
