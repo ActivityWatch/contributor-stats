@@ -1,6 +1,10 @@
 contributor-stats
 =================
 
+[![Build](https://github.com/ActivityWatch/contributor-stats/actions/workflows/build.yml/badge.svg)](https://github.com/ActivityWatch/contributor-stats/actions/workflows/build.yml)
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Typechecking: Mypy](http://www.mypy-lang.org/static/mypy_badge.svg)](http://mypy-lang.org/)
+
 A project to generate full contributor stats across all ActivityWatch and SuperuserLabs repositories.
 
 Output from this tool is shown on [the ActivityWatch website](https://activitywatch.net/contributors/) for ActivityWatch repos, and not yet anywhere for SuperuserLabs repos (but will someday).
