@@ -41,4 +41,7 @@ clean:
 	rm -rf repos/*
 
 test:
-	python3 -m pytest tests/
+	poetry run python3 -m pytest tests/
+
+typecheck:
+	poetry run python3 -m mypy src/contributor-stats tests --ignore-missing-imports

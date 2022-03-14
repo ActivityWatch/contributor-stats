@@ -10,8 +10,8 @@ from collections import defaultdict
 from typing import Callable, Any
 
 import pandas as pd
-import github  # pygithub
-from github import Github, Repository
+from github import Github
+from github.Repository import Repository
 from joblib import Memory
 from tqdm import tqdm
 
@@ -29,25 +29,6 @@ def _is_bot(username):
 
 def _sort_dict_by_value(d: dict) -> dict:
     return {k: v for k, v in sorted(d.items(), key=lambda item: item[1])}
-
-
-# TODO: remove?
-def _cache_repo(f: Callable[[github.Repository, ...], Any]):
-    """cache a function taking a repo as first argument"""
-
-    @functools.wraps(f)
-    def g(*a, **kw):
-        repo = a[0]
-        a = a[1:]
-
-        @functools.wraps(f)
-        @memory.cache
-        def h(repo_fullname, *a, **kw):
-            return f(repo, *a, **kw)
-
-        return h(repo.full_name, *a, **kw)
-
-    return g
 
 
 @memory.cache
@@ -118,7 +99,7 @@ def _merged_prs_by_user(repo_fullname: str, since: datetime) -> dict[str, int]:
     # returns the number of merged PRs per user
     logger.info(" - Getting merged PRs...")
     repo: Repository = gh.get_repo(repo_fullname)
-    merged_prs_by_user = defaultdict(int)
+    merged_prs_by_user: dict[str, int] = defaultdict(int)
     for pr in repo.get_pulls(state="closed", sort="updated", direction="desc"):
         if pr.updated_at < since:
             break
@@ -245,7 +226,7 @@ def main() -> None:
 
     def df_total(repostats: dict[str, pd.DataFrame]) -> pd.DataFrame:
         # Sum all repo stats into one dataframe
-        df = None
+        df: pd.DataFrame = None
         for stats in repostats.values():
             if df is None:
                 df = stats["df"]
