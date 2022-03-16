@@ -6,7 +6,7 @@ authors = ["Erik Bjäreholt <erik@bjareho.lt>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.9"
+python = "^3.10"
 pandas = "*"
 PyGithub = "*"
 numpy = "*"
