@@ -208,10 +208,13 @@ def main():
 
     tables["total"] = merge_tables(tables)
 
-    # Sort the tables by commits
+    # Sort the tables by days active, then by name (to achieve deterministic ordering)
     for key in tables:
         tables[key] = OrderedDict(
-            sorted(tables[key].items(), key=lambda item: -item[1]["commits"])
+            sorted(
+                tables[key].items(),
+                key=lambda item: [-len(item[1]["active_days"]), item[0]],
+            )
         )
 
     for name, rows in tables.items():
