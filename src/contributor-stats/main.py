@@ -30,10 +30,10 @@ def foldername(path) -> str:
 
 def merge_author(a1: MutableMapping, a2: MutableMapping) -> AuthorInfo:
     # TODO: Needs to merge more properties
+    a1["active_days"] = set(a1["active_days"]).union(set(a2["active_days"]))
     a1["commits"] += a2["commits"]
     a1["lines_added"] += a2["lines_added"]
     a1["lines_removed"] += a2["lines_removed"]
-    a1["active_days"] = set(a1["active_days"]).union(set(a2["active_days"]))
 
     return a1
 
@@ -101,7 +101,7 @@ def generate_from_repo(path) -> Tuple[str, Table]:
 
 
 def table_print(rows: Table):
-    header = "{name:<21} | {commits:<8} | {activedays:<11} | {adds:<8} | {deletes:<8}".format(
+    header = "{name:<21} | {activedays:<11} | {commits:<8}  | {adds:<8} | {deletes:<8}".format(
         name="Name",
         commits="Commits",
         activedays="Active days",
@@ -112,7 +112,7 @@ def table_print(rows: Table):
     print("-" * len(header))
     for name, row in rows.items():
         print(
-            "{name:<21} | {commits:<8} | {n_active_days:<11} | +{lines_added:<7} | -{lines_removed:<7}".format(
+            "{name:<21} | {n_active_days:<11} | {commits:<8} | +{lines_added:<7} | -{lines_removed:<7}".format(
                 name=name, n_active_days=len(row["active_days"]), **row
             )
         )
@@ -141,7 +141,8 @@ class HTML:
 
 def table2html(rows: Table) -> str:
     html = HTML()
-    keys = rows[list(rows.keys())[0]].keys()
+    # keys = rows[list(rows.keys())[0]].keys()
+    keys = ["active_days", "commits", "lines_added", "lines_removed"]
 
     with html.tag("table", 'class="table table-sm"'):
         # Header
@@ -208,12 +209,17 @@ def main():
 
     tables["total"] = merge_tables(tables)
 
-    # Sort the tables by days active, then by name (to achieve deterministic ordering)
+    # Sort the tables by days active, then commits, then adds, then by name (to achieve deterministic ordering)
     for key in tables:
         tables[key] = OrderedDict(
             sorted(
                 tables[key].items(),
-                key=lambda item: [-len(item[1]["active_days"]), item[0]],
+                key=lambda item: [
+                    -len(item[1]["active_days"]),
+                    -item[1]["commits"],
+                    -item[1]["lines_added"],
+                    item[0],
+                ],
             )
         )
 
