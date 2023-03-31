@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-import os
-import logging
-import functools
 import itertools
-from pathlib import Path
-from datetime import datetime, date
+import logging
+import os
 from collections import defaultdict
-from typing import Callable, Any
+from datetime import date, datetime
+from pathlib import Path
 
 import pandas as pd
 from github import Github
@@ -16,8 +14,6 @@ from joblib import Memory
 from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
-
-gh: Github
 
 # FIXME: Use path relative to script, not working dir
 memory = Memory("./.cache/github-stats")
@@ -31,20 +27,39 @@ def _sort_dict_by_value(d: dict) -> dict:
     return {k: v for k, v in sorted(d.items(), key=lambda item: item[1])}
 
 
-@memory.cache
-def _comments_by_user(repo_fullname: str, since: datetime) -> dict[str, int]:
+from typing import TypedDict
+
+
+class CommentStats(TypedDict):
+    count: dict[str, int]
+    words: dict[str, int]
+    days: dict[str, set[date]]
+
+
+@memory.cache(ignore=["gh"])
+def _comments_by_user(gh: Github, repo_fullname: str, since: datetime) -> CommentStats:
     logger.info(" - Getting comments by user...")
     repo: Repository = gh.get_repo(repo_fullname)
+
     comments_by_user: dict[str, int] = defaultdict(int)
+    words_by_user: dict[str, int] = defaultdict(int)
+    days_by_user: dict[str, set[date]] = defaultdict(set)
+
     for comment in repo.get_issues_comments(since=since):
         if _is_bot(comment.user.login):
             continue
         comments_by_user[comment.user.login] += 1
-    return _sort_dict_by_value(comments_by_user)
+        words_by_user[comment.user.login] += len(comment.body.split())
+        days_by_user[comment.user.login].add(comment.created_at.date())
+    return CommentStats(
+        count=_sort_dict_by_value(comments_by_user),
+        words=_sort_dict_by_value(words_by_user),
+        days=dict(days_by_user),
+    )
 
 
-@memory.cache
-def _issues_by_user(repo_fullname: str, since: datetime) -> dict[str, int]:
+@memory.cache(ignore=["gh"])
+def _issues_by_user(gh: Github, repo_fullname: str, since: datetime) -> dict[str, int]:
     logger.info(" - Getting issues by user...")
     repo: Repository = gh.get_repo(repo_fullname)
     issues_by_user: dict[str, int] = defaultdict(int)
@@ -56,8 +71,10 @@ def _issues_by_user(repo_fullname: str, since: datetime) -> dict[str, int]:
     return _sort_dict_by_value(issues_by_user)
 
 
-@memory.cache
-def _pr_comments_by_user(repo_fullname: str, since: datetime) -> dict[str, int]:
+@memory.cache(ignore=["gh"])
+def _pr_comments_by_user(
+    gh: Github, repo_fullname: str, since: datetime
+) -> dict[str, int]:
     logger.info(" - Getting PR comments by user...")
     repo: Repository = gh.get_repo(repo_fullname)
     pr_comments_by_user: dict[str, int] = defaultdict(int)
@@ -66,8 +83,8 @@ def _pr_comments_by_user(repo_fullname: str, since: datetime) -> dict[str, int]:
     return _sort_dict_by_value(pr_comments_by_user)
 
 
-@memory.cache
-def _issues_stats(repo_fullname: str, since: datetime) -> dict[str, int]:
+@memory.cache(ignore=["gh"])
+def _issues_stats(gh: Github, repo_fullname: str, since: datetime) -> dict[str, int]:
     # return the number of closed issues
     logger.info(" - Getting opened/closed issues...")
     repo: Repository = gh.get_repo(repo_fullname)
@@ -75,14 +92,16 @@ def _issues_stats(repo_fullname: str, since: datetime) -> dict[str, int]:
     closed = 0
     for issue in repo.get_issues(state="all", since=since):
         if issue.created_at < since:
+            continue
+        if issue.state == "open":
             opened += 1
-        if issue.closed_at and issue.closed_at < since:
+        else:
             closed += 1
     return {"opened": opened, "closed": closed}
 
 
-@memory.cache
-def _submitted_prs(repo_fullname: str, since: datetime):
+@memory.cache(ignore=["gh"])
+def _submitted_prs(gh: Github, repo_fullname: str, since: datetime):
     # returns the number of merged PRs
     logger.info(" - Getting submitted PRs...")
     repo: Repository = gh.get_repo(repo_fullname)
@@ -94,8 +113,10 @@ def _submitted_prs(repo_fullname: str, since: datetime):
     return count
 
 
-@memory.cache
-def _merged_prs_by_user(repo_fullname: str, since: datetime) -> dict[str, int]:
+@memory.cache(ignore=["gh"])
+def _merged_prs_by_user(
+    gh: Github, repo_fullname: str, since: datetime
+) -> dict[str, int]:
     # returns the number of merged PRs per user
     logger.info(" - Getting merged PRs...")
     repo: Repository = gh.get_repo(repo_fullname)
@@ -110,9 +131,9 @@ def _merged_prs_by_user(repo_fullname: str, since: datetime) -> dict[str, int]:
 
 
 # "I" wrote this with Github Copilot, don't trust it...
-@memory.cache
+@memory.cache(ignore=["gh"])
 def _get_active_days_by_user(
-    repo_fullname: str, since: datetime
+    gh: Github, repo_fullname: str, since: datetime
 ) -> dict[str, set[date]]:
     # return a dict with the active dates per contributor
     logger.info(" - Getting active days by user...")
@@ -135,10 +156,13 @@ def _get_active_days_by_user(
     return active_days_by_user
 
 
-def main() -> None:
+def _init_gh():
     GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-    global gh
-    gh = Github(GITHUB_TOKEN)
+    return Github(GITHUB_TOKEN)
+
+
+def main() -> None:
+    gh = _init_gh()
     since = datetime(2012, 1, 1)
 
     repostats: dict[str, dict] = {}
@@ -164,14 +188,16 @@ def main() -> None:
         logger.info(f"Processing for {repo.name}...")
 
         repostats[repo.name] = {
-            "comments_by_user": _comments_by_user(repo.full_name, since=since),
-            "issues_by_user": _issues_by_user(repo.full_name, since=since),
-            "pr_comments_by_user": _pr_comments_by_user(repo.full_name, since=since),
-            "issues": _issues_stats(repo.full_name, since=since),
-            "merged_prs_by_user": _merged_prs_by_user(repo.full_name, since=since),
-            "submitted_prs": _submitted_prs(repo.full_name, since=since),
+            "comments_by_user": _comments_by_user(gh, repo.full_name, since=since),
+            "issues_by_user": _issues_by_user(gh, repo.full_name, since=since),
+            "pr_comments_by_user": _pr_comments_by_user(
+                gh, repo.full_name, since=since
+            ),
+            "issues": _issues_stats(gh, repo.full_name, since=since),
+            "merged_prs_by_user": _merged_prs_by_user(gh, repo.full_name, since=since),
+            "submitted_prs": _submitted_prs(gh, repo.full_name, since=since),
             "active_days_by_user": _get_active_days_by_user(
-                repo.full_name, since=since
+                gh, repo.full_name, since=since
             ),
         }
 

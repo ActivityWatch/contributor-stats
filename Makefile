@@ -22,10 +22,10 @@ REPOS_SL=SuperuserLabs/thankful \
 		 SuperuserLabs/superuserlabs.github.io
 
 build-aw: clone-aw
-	python3 src/contributor-stats/main.py $(addprefix repos/,$(REPOS_AW))
+	python3 src/contributor_stats/main.py $(addprefix repos/,$(REPOS_AW))
 
 build-sl: clone-sl
-	python3 src/contributor-stats/main.py $(addprefix repos/,$(REPOS_SL))
+	python3 src/contributor_stats/main.py $(addprefix repos/,$(REPOS_SL))
 
 clone-aw: $(patsubst %, repos/%, $(REPOS_AW))
 clone-sl: $(patsubst %, repos/%, $(REPOS_SL))
@@ -44,4 +44,4 @@ test:
 	poetry run python3 -m pytest tests/
 
 typecheck:
-	poetry run python3 -m mypy src/contributor-stats tests --ignore-missing-imports
+	poetry run python3 -m mypy src/contributor_stats tests --ignore-missing-imports

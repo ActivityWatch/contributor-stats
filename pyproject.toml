@@ -6,15 +6,16 @@ authors = ["Erik Bjäreholt <erik@bjareho.lt>"]
 license = "MIT"
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "^3.9"
 pandas = "*"
 PyGithub = "*"
 numpy = "*"
 tqdm = "*"
 click = "^8.0"
+joblib = "*"
 
 [tool.poetry.dev-dependencies]
-black = "^22.1.0"
+black = "*"
 mypy = "*"
 pytest = "*"
 
