@@ -28,6 +28,7 @@ def test_issues_by_user(gh: Github):
     since = datetime(2021, 3, 1)
     repo = "activitywatch/aw-client"  # smaller repo for testing
     issues = _issues_by_user(gh, repo, since)
+    print("issues_by_user")
     pprint(issues)
     assert len(issues) > 0
 
