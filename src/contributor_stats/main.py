@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 AuthorInfo = MutableMapping[str, dict]
 Table = MutableMapping[str, AuthorInfo]
 
-zero_row = OrderedDict(commits=0, active_days=[], lines_added=0, lines_removed=0)
+zero_row = OrderedDict(commits=0, active_days=[], lines_added=0, lines_removed=0, blame=0)
 
 
 def foldername(path) -> str:
@@ -34,6 +34,7 @@ def merge_author(a1: MutableMapping, a2: MutableMapping) -> AuthorInfo:
     a1["commits"] += a2["commits"]
     a1["lines_added"] += a2["lines_added"]
     a1["lines_removed"] += a2["lines_removed"]
+    a1["blame"] = a1.get("blame", 0) + a2.get("blame", 0)
 
     return a1
 
@@ -79,7 +80,26 @@ def get_authorInfos(data) -> AuthorInfo:
     return authorInfos
 
 
-def generate_from_repo(path) -> Tuple[str, Table]:
+def git_blame_stats(path) -> dict[str, int]:
+    """
+    Uses the following command to get stats of lines last touched by each author:
+        git ls-tree --name-only -z -r HEAD -- $1 | xargs -0 -n1 git blame --line-porcelain | grep "^author "|sort|uniq -c|sort -nr
+    """
+    import subprocess
+    os.chdir(path)
+    output = subprocess.check_output(
+        "git ls-tree --name-only -z -r HEAD -- . | xargs -0 -n1 git blame --line-porcelain | grep '^author '|sort|uniq -c|sort -nr", shell=True, text=True
+    )
+    if output.startswith("usage:"):
+        print(os.getcwd())
+        raise Exception(output)
+    os.chdir(original_cwd)
+    return {" ".join(line.split()[2:]): int(line.split()[0]) for line in output.split("\n") if line}
+
+
+def generate_from_repo(path: Path) -> Tuple[str, Table]:
+    path = Path(path).resolve()
+
     # TODO: Could use caching to speed up (not much point since it usually runs in CI)
     data = gitstats.GitDataCollector()
 
@@ -90,29 +110,37 @@ def generate_from_repo(path) -> Tuple[str, Table]:
     data.refine()
     os.chdir(original_cwd)
 
+    blame = git_blame_stats(path)
+    blame_lines = sum(blame.values())
+
     print("Generated stats for: {}".format(data.projectname))
 
     rows = {}
     authorInfos = get_authorInfos(data)
     for name, info in authorInfos.items():
         rows[name] = merge_author(zero_row.copy(), info)
+        rows[name]["blame"] = blame.get(name, 0)
+
+    for name in rows:
+        rows[name]["blame_percent"] = rows[name]["blame"] / blame_lines * 100
 
     return data.projectname, rows
 
 
 def table_print(rows: Table):
-    header = "{name:<21} | {activedays:<11} | {commits:<8}  | {adds:<8} | {deletes:<8}".format(
+    header = "{name:<21} | {activedays:<11} | {commits:<8} | {adds:<8} | {deletes:<8} | {blame}".format(
         name="Name",
         commits="Commits",
         activedays="Active days",
         adds="Added",
         deletes="Removed",
+        blame="Blame",
     )
     print(header)
     print("-" * len(header))
     for name, row in rows.items():
         print(
-            "{name:<21} | {n_active_days:<11} | {commits:<8} | +{lines_added:<7} | -{lines_removed:<7}".format(
+            "{name:<21} | {n_active_days:<11} | {commits:<8} | +{lines_added:<7} | -{lines_removed:<7} | {blame_percent_str}".format(
                 name=name, n_active_days=len(row["active_days"]), **row
             )
         )
@@ -142,13 +170,17 @@ class HTML:
 def table2html(rows: Table) -> str:
     html = HTML()
     # keys = rows[list(rows.keys())[0]].keys()
-    keys = ["active_days", "commits", "lines_added", "lines_removed"]
+    keys = ["active_days", "commits", "lines_added", "lines_removed", "blame_percent_str"]
 
     with html.tag("table", 'class="table table-sm"'):
         # Header
         with html.tag("tr"):
             html += "<th>Name</th>"
             for key in keys:
+                if key.endswith("_str"):
+                    key = key.replace("_str", "")
+                if key.endswith("_percent"):
+                    key = key.replace("_percent", " %")
                 html += "<th>{}</th>".format(key.replace("_", " ").title())
 
         # Rows
@@ -159,6 +191,7 @@ def table2html(rows: Table) -> str:
                     value: Any = row[key]
                     if key == "active_days":
                         value = len(value)
+
                     html += "<td>{}</td>".format(value)
     return html.s
 
@@ -184,6 +217,11 @@ def merge_tables(tables: Dict[str, Table]):
         for name in names:
             if name in table:
                 merged_table[name] = merge_author(merged_table[name], table[name])
+
+    # handle blame
+    blame_lines = sum(row["blame"] for row in merged_table.values())
+    for name in merged_table:
+        merged_table[name]["blame_percent"] = merged_table[name]["blame"] / blame_lines * 100
 
     return merged_table
 
@@ -222,6 +260,10 @@ def main():
                 ],
             )
         )
+
+    for table in tables:
+        for row in tables[table].values():
+            row["blame_percent_str"] = "{:.2f}%".format(row["blame_percent"]).replace("0.00%", "0%")
 
     for name, rows in tables.items():
         print(name)
