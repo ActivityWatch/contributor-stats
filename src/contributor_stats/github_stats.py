@@ -7,6 +7,7 @@ from collections import defaultdict
 from datetime import date, datetime
 from pathlib import Path
 from typing import TypedDict
+from dataclasses import dataclass
 
 import pandas as pd
 from github import Github
@@ -101,35 +102,16 @@ def _pr_comments_by_user(
 
 
 @memory.cache(ignore=["gh"])
-def _issues_stats(gh: Github, repo_fullname: str, since: datetime) -> dict[str, int]:
-    """return the number of closed issues"""
-    logger.info(" - Getting opened/closed issues...")
-    repo: Repository = gh.get_repo(repo_fullname)
-    opened = 0
-    closed = 0
-    for issue in repo.get_issues(
-        state="all", since=since, sort="created", direction="desc"
-    ):
-        if issue.created_at < since:
-            break
-        if issue.state == "open":
-            opened += 1
-        else:
-            closed += 1
-    return {"opened": opened, "closed": closed}
-
-
-@memory.cache(ignore=["gh"])
 def _submitted_prs(gh: Github, repo_fullname: str, since: datetime):
     """returns the number of merged PRs"""
     logger.info(" - Getting submitted PRs...")
     repo: Repository = gh.get_repo(repo_fullname)
-    count = 0
+    count_by_user: dict[str, int] = defaultdict(int)
     for pr in repo.get_pulls(state="all", sort="created", direction="desc"):
         if pr.created_at < since:
             break
-        count += 1
-    return count
+        count_by_user[pr.user.login] += 1
+    return count_by_user
 
 
 @memory.cache(ignore=["gh"])
@@ -157,33 +139,36 @@ def _merged_prs_by_user(
 def _get_active_days_by_user(
     gh: Github, repo_fullname: str, since: datetime
 ) -> dict[str, set[date]]:
-    """return a dict with the active dates per contributor"""
+    """
+    Iterates through all issues, comments and PRs to build a set of days where user was active.
+    # return a dict {username: set([date1, ...]), ...}
+    """
     logger.info(" - Getting active days by user...")
     repo: Repository = gh.get_repo(repo_fullname)
     active_days_by_user = defaultdict(set)
-
-    # Days when issues created
-    for issue in repo.get_issues(
-        state="all", sort="created", direction="desc", since=since
-    ):
+    # issues created
+    for issue in repo.get_issues(state="all", since=since):
         if issue.created_at < since:
             break
         active_days_by_user[issue.user.login].add(issue.created_at.date())
-
-    # Days when PRs created
+    # comments
+    for comment in repo.get_issues_comments(since=since):
+        if comment.created_at < since:
+            continue
+        active_days_by_user[comment.user.login].add(comment.created_at.date())
+    # pulls created
     for pr in repo.get_pulls(state="all", sort="created", direction="desc"):
         if pr.created_at < since:
             break
         active_days_by_user[pr.user.login].add(pr.created_at.date())
-
-    # Days when PRs merged
+    # pulls merged
     for pr in repo.get_pulls(state="closed", sort="updated", direction="desc"):
         if pr.updated_at < since:
             break
         if not pr.merged or pr.merged_at < since:
             continue
         active_days_by_user[pr.user.login].add(pr.merged_at.date())
-
+    # TODO: pull commits & comments
     return active_days_by_user
 
 
@@ -192,11 +177,26 @@ def _init_gh():
     return Github(GITHUB_TOKEN)
 
 
+@dataclass
+class RepoStats:
+    # most stats are per user
+
+    issues: dict[str, int]
+    comments: dict[str, CommentStats]
+    prs: dict[str, int]
+    prs_merged: dict[str, int]
+    pr_comments: dict[str, int]
+    active_days: dict[str, set[date]]
+    #commits: dict[str, int]
+    df: pd.DataFrame
+
+
 def main() -> None:
     gh = _init_gh()
-    since = datetime(2023, 1, 1)
+    #since = datetime(2023, 1, 1)
+    since = datetime(1999, 1, 1)
 
-    repostats: dict[str, dict] = {}
+    repostats: dict[str, RepoStats] = {}
 
     for repo in tqdm(list(gh.get_user("ActivityWatch").get_repos())):
         if repo.name not in [
@@ -211,6 +211,7 @@ def main() -> None:
             "aw-watcher-window",
             "aw-watcher-afk",
             "aw-watcher-input",
+            "aw-watcher-web",
             "aw-webui",
             "aw-qt",
             "activitywatch.github.io",
@@ -218,19 +219,19 @@ def main() -> None:
             continue
         logger.info(f"Processing for {repo.name}...")
 
-        repostats[repo.name] = {
-            "comments_by_user": _comments_by_user(gh, repo.full_name, since=since),
-            "issues_by_user": _issues_by_user(gh, repo.full_name, since=since),
-            "pr_comments_by_user": _pr_comments_by_user(
+        repostats[repo.name] = RepoStats(
+            issues=_issues_by_user(gh, repo.full_name, since=since),
+            comments=_comments_by_user(gh, repo.full_name, since=since),
+            prs=_submitted_prs(gh, repo.full_name, since=since),
+            prs_merged=_merged_prs_by_user(gh, repo.full_name, since=since),
+            pr_comments=_pr_comments_by_user(
                 gh, repo.full_name, since=since
             ),
-            "issues": _issues_stats(gh, repo.full_name, since=since),
-            "merged_prs_by_user": _merged_prs_by_user(gh, repo.full_name, since=since),
-            "submitted_prs": _submitted_prs(gh, repo.full_name, since=since),
-            "active_days_by_user": _get_active_days_by_user(
+            active_days=_get_active_days_by_user(
                 gh, repo.full_name, since=since
             ),
-        }
+            df=None,
+        )
 
     # pprint(repostats)
     # FIXME: pprint should use sort_dicts=False (added in Python 3.8)
@@ -240,10 +241,10 @@ def main() -> None:
         user
         for repo in repostats.values()
         for user in (
-            set(repo["comments_by_user"].keys())
-            | set(repo["issues_by_user"].keys())
-            | set(repo["pr_comments_by_user"].keys())
-            | set(repo["merged_prs_by_user"].keys())
+            set(repo.comments['count'].keys())
+            | set(repo.issues.keys())
+            | set(repo.pr_comments.keys())
+            | set(repo.prs_merged.keys())
         )
     )
     print(f"Total contributors: {len(all_users)}")
@@ -254,13 +255,14 @@ def main() -> None:
             [
                 (
                     user,
-                    stats["issues_by_user"].get(user, 0),
-                    stats["comments_by_user"].get(user, 0),
-                    stats["pr_comments_by_user"].get(user, 0),
-                    stats["submitted_prs"],
-                    stats["merged_prs_by_user"].get(user, 0),
+                    stats.issues.get(user, 0),
+                    stats.comments['count'].get(user, 0),
+                    stats.comments['words'].get(user, 0),
+                    stats.prs.get(user, 0),
+                    stats.pr_comments.get(user, 0),
+                    stats.prs_merged.get(user, 0),
                     # active days
-                    stats["active_days_by_user"].get(user, set()),
+                    stats.active_days.get(user, set()),
                 )
                 for user in all_users
             ],
@@ -268,61 +270,64 @@ def main() -> None:
                 "user",
                 "issues",
                 "comments",
+                "comment words",
+                "prs",
+                "prs_merged",
                 "pr_comments",
-                "submitted_prs",
-                "merged_prs",
-                "active_days_by_user",
+                "active_days",
             ],
         )
         df["total"] = (
-            df["issues"] + df["comments"] + df["pr_comments"] + df["merged_prs"]
+            df["issues"] + df["comments"] + df["pr_comments"] + df["prs_merged"]
         )
         df = df.sort_values("total", ascending=False)
         df = df.set_index("user")
-        stats["df"] = df
+        stats.df = df
 
     def df_total(repostats: dict[str, pd.DataFrame]) -> pd.DataFrame:
         # Sum all repo stats into one dataframe
         df: pd.DataFrame = None
         for stats in repostats.values():
             if df is None:
-                df = stats["df"]
+                # if first repo, just copy it
+                df = stats.df
             else:
                 # print(df.columns)
                 # print(stats["df"].columns)
-                # output: ['issues', 'comments', 'pr_comments', 'submitted_prs', 'merged_prs', 'active_days_by_user', 'total']
+                # output: ['issues', 'comments', 'pr_comments', 'submitted_prs', 'merged_prs', 'active_days', 'total']
 
-                # note that active_days_by_user is a set, so it's not additive
+                # note that active_days is a set, so it's not additive
 
-                df["issues"] += stats["df"]["issues"]
-                df["comments"] += stats["df"]["comments"]
-                df["pr_comments"] += stats["df"]["pr_comments"]
-                df["merged_prs"] += stats["df"]["merged_prs"]
-                df["submitted_prs"] += stats["df"]["submitted_prs"]
-                df["total"] += (
-                    stats["df"]["issues"]
-                    + stats["df"]["comments"]
-                    + stats["df"]["pr_comments"]
-                    + stats["df"]["merged_prs"]
+                df["issues"] += stats.df["issues"]
+                df["comments"] += stats.df["comments"]
+                df["prs"] += stats.df["prs"]
+                df["prs_merged"] += stats.df["prs_merged"]
+                df["pr_comments"] += stats.df["pr_comments"]
+                df["total"] = (
+                    df["issues"]
+                    + df["comments"]
+                    + df["prs"]
+                    + df["prs_merged"]
+                    + df["pr_comments"]
                 )
 
-                # here the sets in active_days_by_user are added together too
+                # here the sets in active_days are added together too
                 days_by_name = defaultdict(set)
                 for name, days in itertools.chain(
-                    df["active_days_by_user"].iteritems(),
-                    stats["df"]["active_days_by_user"].iteritems(),
+                    df["active_days"].items(),
+                    stats.df["active_days"].items(),
                 ):
                     if isinstance(days, float):
                         continue
                     days_by_name[name].update(days)
 
-                df["active_days_by_user"] = pd.Series(
+                df["active_days"] = pd.Series(
                     list(days_by_name.values()),
                     index=list(days_by_name.keys()),
                     dtype=object,
                 )
 
-        df["no_active_days_by_user"] = df["active_days_by_user"].apply(lambda x: len(x))
+        df["active_days"] = df["active_days"].apply(lambda x: len(x))
         df = df.sort_values("total", ascending=True)
         return df
 
@@ -334,12 +339,13 @@ def main() -> None:
             [
                 "issues",
                 "comments",
+                "prs",
+                "prs_merged",
                 "pr_comments",
-                "total",
-                "merged_prs",
-                "no_active_days_by_user",
+                "active_days",
+                "total"
             ]
-        ].iloc[-15:]
+        ]
     )
     print(df.columns)
 
