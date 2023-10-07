@@ -186,37 +186,39 @@ class RepoStats:
     prs: dict[str, int]
     prs_merged: dict[str, int]
     pr_comments: dict[str, int]
-    active_days: dict[str, set[date]]
-    #commits: dict[str, int]
+    active_days_set: dict[str, set[date]]
+    # commits: dict[str, int]
     df: pd.DataFrame
 
 
 def main() -> None:
     gh = _init_gh()
-    #since = datetime(2023, 1, 1)
+    # since = datetime(2023, 1, 1)
     since = datetime(1999, 1, 1)
 
     repostats: dict[str, RepoStats] = {}
 
-    for repo in tqdm(list(gh.get_user("ActivityWatch").get_repos())):
-        if repo.name not in [
-            "activitywatch",
-            "activitywatch-old",
-            "docs",
-            "aw-core",
-            "aw-client",
-            "aw-client-js",
-            "aw-server",
-            "aw-server-rust",
-            "aw-watcher-window",
-            "aw-watcher-afk",
-            "aw-watcher-input",
-            "aw-watcher-web",
-            "aw-webui",
-            "aw-qt",
-            "activitywatch.github.io",
-        ]:
-            continue
+    whitelist = [
+        "activitywatch",
+        "activitywatch-old",
+        "docs",
+        "aw-core",
+        "aw-client",
+        "aw-client-js",
+        "aw-server",
+        "aw-server-rust",
+        "aw-watcher-window",
+        "aw-watcher-afk",
+        "aw-watcher-input",
+        "aw-watcher-web",
+        "aw-webui",
+        "aw-qt",
+        "activitywatch.github.io",
+    ]
+
+    repos = gh.get_user("ActivityWatch").get_repos()
+    repos = [repo for repo in repos if repo.name in whitelist]
+    for repo in tqdm(repos):
         logger.info(f"Processing for {repo.name}...")
 
         repostats[repo.name] = RepoStats(
@@ -224,12 +226,8 @@ def main() -> None:
             comments=_comments_by_user(gh, repo.full_name, since=since),
             prs=_submitted_prs(gh, repo.full_name, since=since),
             prs_merged=_merged_prs_by_user(gh, repo.full_name, since=since),
-            pr_comments=_pr_comments_by_user(
-                gh, repo.full_name, since=since
-            ),
-            active_days=_get_active_days_by_user(
-                gh, repo.full_name, since=since
-            ),
+            pr_comments=_pr_comments_by_user(gh, repo.full_name, since=since),
+            active_days_set=_get_active_days_by_user(gh, repo.full_name, since=since),
             df=None,
         )
 
@@ -241,7 +239,7 @@ def main() -> None:
         user
         for repo in repostats.values()
         for user in (
-            set(repo.comments['count'].keys())
+            set(repo.comments["count"].keys())
             | set(repo.issues.keys())
             | set(repo.pr_comments.keys())
             | set(repo.prs_merged.keys())
@@ -256,13 +254,13 @@ def main() -> None:
                 (
                     user,
                     stats.issues.get(user, 0),
-                    stats.comments['count'].get(user, 0),
-                    stats.comments['words'].get(user, 0),
+                    stats.comments["count"].get(user, 0),
+                    stats.comments["words"].get(user, 0),
                     stats.prs.get(user, 0),
                     stats.pr_comments.get(user, 0),
                     stats.prs_merged.get(user, 0),
                     # active days
-                    stats.active_days.get(user, set()),
+                    stats.active_days_set.get(user, set()),
                 )
                 for user in all_users
             ],
@@ -274,11 +272,20 @@ def main() -> None:
                 "prs",
                 "prs_merged",
                 "pr_comments",
-                "active_days",
+                "active_days_set",
             ],
         )
+
+        # issues include PRs, so we need to subtract them
+        assert (df["issues"] >= df["prs"]).all()
+        df["issues"] -= df["prs"]
+
         df["total"] = (
-            df["issues"] + df["comments"] + df["pr_comments"] + df["prs_merged"]
+            df["issues"]
+            + df["comments"]
+            + df["prs"]
+            + df["pr_comments"]
+            + df["prs_merged"]
         )
         df = df.sort_values("total", ascending=False)
         df = df.set_index("user")
@@ -286,6 +293,7 @@ def main() -> None:
 
     def df_total(repostats: dict[str, pd.DataFrame]) -> pd.DataFrame:
         # Sum all repo stats into one dataframe
+        assert len(repostats) > 0
         df: pd.DataFrame = None
         for stats in repostats.values():
             if df is None:
@@ -294,9 +302,7 @@ def main() -> None:
             else:
                 # print(df.columns)
                 # print(stats["df"].columns)
-                # output: ['issues', 'comments', 'pr_comments', 'submitted_prs', 'merged_prs', 'active_days', 'total']
-
-                # note that active_days is a set, so it's not additive
+                # output: ['issues', 'comments', 'pr_comments', 'submitted_prs', 'merged_prs', 'active_days_set', 'total']
 
                 df["issues"] += stats.df["issues"]
                 df["comments"] += stats.df["comments"]
@@ -314,44 +320,71 @@ def main() -> None:
                 # here the sets in active_days are added together too
                 days_by_name = defaultdict(set)
                 for name, days in itertools.chain(
-                    df["active_days"].items(),
-                    stats.df["active_days"].items(),
+                    df["active_days_set"].items(),
+                    stats.df["active_days_set"].items(),
                 ):
                     if isinstance(days, float):
                         continue
                     days_by_name[name].update(days)
 
-                df["active_days"] = pd.Series(
+                df["active_days_set"] = pd.Series(
                     list(days_by_name.values()),
                     index=list(days_by_name.keys()),
                     dtype=object,
                 )
-
-        df["active_days"] = df["active_days"].apply(lambda x: len(x))
+                df["active_days"] = df["active_days_set"].apply(lambda x: len(x))
         df = df.sort_values("total", ascending=True)
         return df
 
     df = df_total(repostats)
+    display_columns = [
+        "issues",
+        "comments",
+        "prs",
+        "prs_merged",
+        "pr_comments",
+        "active_days",
+        "total",
+    ]
 
     pd.set_option("display.max_rows", None, "display.max_columns", None)
-    print(
-        df[
-            [
-                "issues",
-                "comments",
-                "prs",
-                "prs_merged",
-                "pr_comments",
-                "active_days",
-                "total"
-            ]
-        ]
-    )
+    print(df[display_columns])
     print(df.columns)
+
+    # reset index to make user a column (better in HTML)
+    df = df.reset_index()
+
+    # filter out bots (named end in "[bot]")
+    df = df[~df["user"].str.endswith("[bot]")]
+
+    # sort before saving as HTML
+    df = df.sort_values(
+        ["total", "active_days", "user"], ascending=[False, False, True]
+    )
+
+    # select subset of columns
+    df = df[["user"] + display_columns]
+
+    # select only users with total > 1
+    df = df[df["total"] > 10]
+
+    # linkify GitHub usernames
+    df["user"] = df["user"].apply(lambda x: f'<a href="https://github.com/{x}">{x}</a>')
+
+    # replace "_" with space and title-ize the column names
+    df.columns = [
+        col.replace("_", " ").title().replace("Pr", "PR") for col in df.columns
+    ]
 
     savepath = Path("github-activity-table.html")
     with savepath.open("w") as f:
-        html = df.to_html()
+        html = df.to_html(
+            index=False,
+            justify="left",
+            classes="table table-sm",
+            border=0,
+            escape=False,
+        )
         f.write(html)
     print(f"Written to {savepath}")
     print("Done!")
