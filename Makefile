@@ -15,7 +15,8 @@ REPOS_AW=ActivityWatch/activitywatch \
 		 ActivityWatch/aw-watcher-afk \
 		 ActivityWatch/aw-watcher-window \
 		 ActivityWatch/aw-watcher-vim \
-		 ActivityWatch/aw-watcher-vscode
+		 ActivityWatch/aw-watcher-vscode \
+		 ActivityWatch/aw-notify
 
 REPOS_SL=SuperuserLabs/thankful \
 		 SuperuserLabs/thankful-contracts \
