@@ -6,6 +6,7 @@ REPOS_AW=ActivityWatch/activitywatch \
 		 ActivityWatch/aw-server-rust \
 		 ActivityWatch/aw-webui \
 		 ActivityWatch/aw-qt \
+		 ActivityWatch/aw-tauri \
 		 ActivityWatch/aw-android \
 		 ActivityWatch/aw-client \
 		 ActivityWatch/aw-client-js \
