@@ -16,7 +16,12 @@ REPOS_AW=ActivityWatch/activitywatch \
 		 ActivityWatch/aw-watcher-window \
 		 ActivityWatch/aw-watcher-vim \
 		 ActivityWatch/aw-watcher-vscode \
-		 ActivityWatch/aw-notify
+		 ActivityWatch/aw-watcher-input \
+		 ActivityWatch/aw-leaderboard-rust \
+		 ActivityWatch/aw-leaderboard-firebase \
+		 ActivityWatch/aw-supabase \
+		 ActivityWatch/aw-notify \
+		 2e3s/awatcher
 
 REPOS_SL=SuperuserLabs/thankful \
 		 SuperuserLabs/thankful-contracts \
