@@ -4,10 +4,10 @@ import itertools
 import logging
 import os
 from collections import defaultdict
+from dataclasses import dataclass
 from datetime import date, datetime
 from pathlib import Path
 from typing import TypedDict
-from dataclasses import dataclass
 
 import pandas as pd
 from github import Github
@@ -17,8 +17,9 @@ from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
-# FIXME: Use path relative to script, not working dir
-memory = Memory("./.cache/github-stats")
+script_dir = Path(__file__).parent
+project_dir = script_dir.parent.parent
+memory = Memory(project_dir / ".cache" / "github-stats")
 
 
 def _is_bot(username):
@@ -205,14 +206,21 @@ def main() -> None:
         "aw-core",
         "aw-client",
         "aw-client-js",
+        "aw-client-rust",
         "aw-server",
         "aw-server-rust",
         "aw-watcher-window",
         "aw-watcher-afk",
         "aw-watcher-input",
         "aw-watcher-web",
+        "aw-watcher-vim",
+        "aw-watcher-vscode",
+        "aw-notify",
         "aw-webui",
         "aw-qt",
+        "aw-tauri",
+        "aw-android",
+        "aw-leaderboard-firebase",
         "activitywatch.github.io",
     ]
 
