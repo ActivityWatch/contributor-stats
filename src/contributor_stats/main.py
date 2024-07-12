@@ -67,6 +67,7 @@ def get_authorInfos(data) -> AuthorInfo:
         ("Bill Ang Li", ["Bill-linux"]),
         ("dependabot[bot]", ["dependabot-preview[bot]"]),
         ("Otto-AA", ["A_A"]),
+        ("Brayo", ["brayo"])
     ]
     for name, aliases in author_merges:
         for alias in aliases:
