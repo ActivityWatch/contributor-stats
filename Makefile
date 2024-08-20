@@ -14,7 +14,7 @@ REPOS_AW=ActivityWatch/activitywatch \
 		 ActivityWatch/aw-watcher-web \
 		 ActivityWatch/aw-watcher-afk \
 		 ActivityWatch/aw-watcher-window \
-		 ActivityWatch/aw-watcher-input \
+		 ActivityWatch/aw-watcher-window-wayland \
 		 ActivityWatch/aw-watcher-vim \
 		 ActivityWatch/aw-watcher-vscode \
 		 ActivityWatch/aw-watcher-input \

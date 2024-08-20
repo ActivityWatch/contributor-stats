@@ -210,6 +210,7 @@ def main() -> None:
         "aw-server",
         "aw-server-rust",
         "aw-watcher-window",
+        "aw-watcher-window-wayland",
         "aw-watcher-afk",
         "aw-watcher-input",
         "aw-watcher-web",
@@ -220,8 +221,10 @@ def main() -> None:
         "aw-qt",
         "aw-tauri",
         "aw-android",
+        "aw-leaderboard-rust",
         "aw-leaderboard-firebase",
         "activitywatch.github.io",
+        "awatcher",
     ]
 
     repos = gh.get_user("ActivityWatch").get_repos()
