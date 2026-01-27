@@ -12,6 +12,9 @@ echo "Building stuff"
 # Bundle repo
 gource --output-custom-log $tmpdir/activitywatch.txt $rootdir
 
+# ===========================================
+# Official ActivityWatch modules
+# ===========================================
 modules=(
     aw-core
     # clients
@@ -33,11 +36,34 @@ modules=(
     docs
     # misc
     other/aw-research
+    # experimental
+    other/aw-tauri
+    # sync and notifications
+    other/aw-sync
+    other/aw-notify
     # old
     old/activitywatch-old
     # hidden due it causing a mess
     #other/aw-android
 )
+
+# ===========================================
+# Community-contributed projects
+# These are popular community projects from awesome-activitywatch
+# Clone them to $rootdir/community/ before running
+# ===========================================
+community_modules=(
+    # Watchers
+    community/awatcher                    # Popular X11/Wayland watcher by @2e3s
+    community/aw-watcher-media-player     # Media playback watcher by @2e3s
+    # Editor integrations
+    other/aw-watcher-vscode              # VSCode extension
+    other/aw-watcher-vim                 # Vim extension
+    community/aw-watcher-jetbrains       # JetBrains IDEs
+    # Desktop widgets
+    community/activitywatch-plasmoid     # KDE Plasma widget by @NicoWeio
+)
+
 for path in "${modules[@]}"; do
     name=$(basename $path)
     loc=$(echo $name | sed -E "s#.+-watcher-.+#watchers/$name#g")
@@ -45,13 +71,37 @@ for path in "${modules[@]}"; do
     loc=$(echo $loc | sed -E "s#.+-server.*#servers/$name#g")
     loc=$(echo $loc | sed -E "s#docs|activitywatch.github.io#website/$name#g")
     echo $name $loc
-    gource --output-custom-log $tmpdir/$name.txt $rootdir/$path
-    sed -i -r "s#(.+)\\|#\\1|/$loc#" $tmpdir/$name.txt
+    if [ -d "$rootdir/$path" ]; then
+        gource --output-custom-log $tmpdir/$name.txt $rootdir/$path
+        sed -i -r "s#(.+)\\|#\\1|/$loc#" $tmpdir/$name.txt
+    else
+        echo "  -> Skipping (not found): $rootdir/$path"
+    fi
+done
+
+# Process community modules
+for path in "${community_modules[@]}"; do
+    name=$(basename $path)
+    # Categorize community modules
+    if [[ $name == *"watcher"* ]] || [[ $name == "awatcher" ]]; then
+        loc="watchers/community/$name"
+    elif [[ $name == *"plasmoid"* ]] || [[ $name == *"widget"* ]]; then
+        loc="widgets/$name"
+    else
+        loc="community/$name"
+    fi
+    echo "$name -> $loc (community)"
+    if [ -d "$rootdir/$path" ]; then
+        gource --output-custom-log $tmpdir/$name.txt $rootdir/$path
+        sed -i -r "s#(.+)\\|#\\1|/$loc#" $tmpdir/$name.txt
+    else
+        echo "  -> Skipping (not found): $rootdir/$path"
+    fi
 done
 
 # Remove all files in activitywatch-old repo when rewrite began
 # TODO: Remove in a logical order (deepest first)
-sed -E 's/.+[|](.+)[|].+[|](.+)/1461708000|\1|D|\2/g' $tmpdir/activitywatch-old.txt | uniq > $tmpdir/fixes.txt
+sed -E 's/.+[|](.+)[|].+[|](.+)/1461708000|\1|D|\2/g' $tmpdir/activitywatch-old.txt 2>/dev/null | uniq > $tmpdir/fixes.txt || true
 
 gourcelog=$tmpdir/combined.gource
 
@@ -86,6 +136,9 @@ sed -i 's/johan-bjareholt/Johan Bjäreholt/g' $gourcelog
 sed -i -E 's/Erik Bj.{1,4}reholt/Erik Bjäreholt/g' $gourcelog
 sed -i 's/dependabot.+/dependabot/g' $gourcelog
 sed -i 's/Bill-linux/Bill Ang Li/g' $gourcelog
+# Community contributor name fixes
+sed -i 's/2e3s/Denis Gavrilov/g' $gourcelog
+sed -i 's/NicoWeio/Nico Weißenbacher/g' $gourcelog
 
 # Remove names which have been spamming commits in CI (accidental bad CI config)
 sed -i 's/.*ErikBjare.*//g' $gourcelog
@@ -93,17 +146,17 @@ sed -i 's/.*ErikBjare.*//g' $gourcelog
 # Prepare avatars
 # TODO: Doesn't fetch avatars from all repos (only the ones with most contributors)
 # run for contributor-stats repo, initialized .git/avatars folder
-if [ -x .git/avatars ]; then
+if [ -d .git/avatar ]; then
     perl fetch-avatars.pl  
     # run for bundle repo, move avatars to local .git/avatars
     fetchsrc=$(realpath fetch-avatars.pl)
-    pushd $rootdir; perl $fetchsrc; popd; mv $rootdir/.git/avatar/* .git/avatar
-    pushd $rootdir/aw-server/aw-webui; perl $fetchsrc; popd; mv $rootdir/aw-server/aw-webui/.git/avatar/* .git/avatar
-    pushd $rootdir/docs; perl $fetchsrc; popd; mv $rootdir/docs/.git/avatar/* .git/avatar
+    pushd $rootdir; perl $fetchsrc; popd; mv $rootdir/.git/avatar/* .git/avatar 2>/dev/null || true
+    pushd $rootdir/aw-server/aw-webui; perl $fetchsrc; popd; mv $rootdir/aw-server/aw-webui/.git/avatar/* .git/avatar 2>/dev/null || true
+    pushd $rootdir/docs; perl $fetchsrc; popd; mv $rootdir/docs/.git/avatar/* .git/avatar 2>/dev/null || true
 fi
 
 # Rename avatars to suit committer name
-cp ../.git/avatar/johan-bjareholt.png '../.git/avatar/Johan Bjäreholt.png'
+[ -f ../.git/avatar/johan-bjareholt.png ] && cp ../.git/avatar/johan-bjareholt.png '../.git/avatar/Johan Bjäreholt.png'
 
 # Resolutions:
 #  - 2560x1440 (for upload)
