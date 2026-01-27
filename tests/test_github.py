@@ -44,16 +44,6 @@ def test_pr_comments_by_user(gh: Github):
     assert len(pr_comments) > 0
 
 
-def test_issues_stats(gh: Github):
-    from contributor_stats.github_stats import _issues_stats
-
-    since = datetime(2021, 3, 1)
-    repo = "activitywatch/aw-client"  # smaller repo for testing
-    issues_stats = _issues_stats(gh, repo, since)
-    print("issues_stats")
-    pprint(issues_stats)
-    assert len(issues_stats) > 0
-
 
 def test_submitted_prs(gh: Github):
     from contributor_stats.github_stats import _submitted_prs

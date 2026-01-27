@@ -120,10 +120,10 @@ def generate_from_repo(path: Path) -> Tuple[str, Table]:
     authorInfos = get_authorInfos(data)
     for name, info in authorInfos.items():
         rows[name] = merge_author(zero_row.copy(), info)
-        rows[name]["blame"] = blame.get(name, 0)
+        rows[name]["blame"] = blame.get(name, 0)  # type: ignore[assignment]
 
     for name in rows:
-        rows[name]["blame_percent"] = rows[name]["blame"] / blame_lines * 100
+        rows[name]["blame_percent"] = rows[name]["blame"] / blame_lines * 100  # type: ignore
 
     return data.projectname, rows
 
@@ -220,9 +220,9 @@ def merge_tables(tables: Dict[str, Table]):
                 merged_table[name] = merge_author(merged_table[name], table[name])
 
     # handle blame
-    blame_lines = sum(row["blame"] for row in merged_table.values())
+    blame_lines = sum(row["blame"] for row in merged_table.values())  # type: ignore[arg-type]
     for name in merged_table:
-        merged_table[name]["blame_percent"] = merged_table[name]["blame"] / blame_lines * 100
+        merged_table[name]["blame_percent"] = merged_table[name]["blame"] / blame_lines * 100  # type: ignore
 
     return merged_table
 

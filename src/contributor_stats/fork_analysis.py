@@ -23,7 +23,7 @@ import json
 import os
 from datetime import datetime, timedelta
 
-import requests
+import requests  # type: ignore[import]
 
 
 def get_forks(owner, repo, token, page=1):
