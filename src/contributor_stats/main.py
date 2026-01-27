@@ -220,7 +220,7 @@ def merge_tables(tables: Dict[str, Table]):
                 merged_table[name] = merge_author(merged_table[name], table[name])
 
     # handle blame
-    blame_lines = sum(row["blame"] for row in merged_table.values())  # type: ignore[arg-type]
+    blame_lines = sum(row["blame"] for row in merged_table.values())  # type: ignore[misc]
     for name in merged_table:
         merged_table[name]["blame_percent"] = merged_table[name]["blame"] / blame_lines * 100  # type: ignore
 
