@@ -138,7 +138,7 @@ sed -i 's/dependabot.+/dependabot/g' $gourcelog
 sed -i 's/Bill-linux/Bill Ang Li/g' $gourcelog
 # Community contributor name fixes
 sed -i 's/2e3s/Denis Gavrilov/g' $gourcelog
-sed -i 's/NicoWeio/Nico Weißenbacher/g' $gourcelog
+sed -i 's/NicoWeio/Nicolai Weitkemper/g' $gourcelog
 
 # Remove names which have been spamming commits in CI (accidental bad CI config)
 sed -i 's/.*ErikBjare.*//g' $gourcelog
