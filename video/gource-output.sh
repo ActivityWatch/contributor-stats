@@ -1,15 +1,49 @@
 #!/bin/bash
+# ActivityWatch Gource Visualization Script
+# Updated 2026-04 to include community repos and extend timeline 2014-2025+
 
 set -e
 
 rootdir=../../../
 tmpdir=.cache/gource
+communitydir=.cache/community  # Directory for auto-cloned community repos
 rm -rf $tmpdir
 mkdir -p $tmpdir
+mkdir -p $communitydir
 
-echo "Building stuff"
+echo "=== ActivityWatch Development Visualization ==="
+echo "Building gource visualization with official + community repos"
 
-# Bundle repo
+# Auto-clone/update community repos (external contributors)
+# These are fetched from GitHub so the script works standalone,
+# without needing repos pre-cloned to $rootdir/community/
+echo ""
+echo "=== Fetching community repos ==="
+community_repos=(
+    "2e3s/awatcher"                    # Popular Rust watcher for X11/Wayland
+    "kepptic/aw-watcher-enhanced"      # Enhanced window watcher with OCR/LLM
+    "2e3s/aw-watcher-media-player"     # Media playback tracking
+    "brayo-pip/aw-watcher-lastfm"      # Last.fm scrobbles
+    "Otto-AA/aw-watcher-vscode"        # VSCode extension
+    "OlivierMary/aw-watcher-jetbrains" # JetBrains extension
+    "NicoWeio/activitywatch-plasmoid"  # KDE Plasma widget
+    "phrp720/aw-sync-suite"            # Prometheus/Grafana sync
+)
+
+for repo in "${community_repos[@]}"; do
+    name=$(basename $repo)
+    if [ -d "$communitydir/$name" ]; then
+        echo "  Updating $name..."
+        (cd "$communitydir/$name" && git pull --quiet) || echo "    (pull failed, using cached)"
+    else
+        echo "  Cloning $name..."
+        git clone --quiet "https://github.com/$repo.git" "$communitydir/$name" 2>/dev/null || echo "    (clone failed, skipping)"
+    fi
+done
+
+# Bundle repo (official ActivityWatch)
+echo ""
+echo "=== Processing official repos ==="
 gource --output-custom-log $tmpdir/activitywatch.txt $rootdir
 
 # ===========================================
@@ -47,42 +81,26 @@ modules=(
     #other/aw-android
 )
 
-# ===========================================
-# Community-contributed projects
-# These are popular community projects from awesome-activitywatch
-# Clone them to $rootdir/community/ before running
-# ===========================================
-community_modules=(
-    # Watchers
-    community/awatcher                    # Popular X11/Wayland watcher by @2e3s
-    community/aw-watcher-media-player     # Media playback watcher by @2e3s
-    # Editor integrations
-    other/aw-watcher-vscode              # VSCode extension
-    other/aw-watcher-vim                 # Vim extension
-    community/aw-watcher-jetbrains       # JetBrains IDEs
-    # Desktop widgets
-    community/activitywatch-plasmoid     # KDE Plasma widget by @NicoWeio
-)
-
 for path in "${modules[@]}"; do
     name=$(basename $path)
     loc=$(echo $name | sed -E "s#.+-watcher-.+#watchers/$name#g")
     loc=$(echo $loc | sed -E "s#.+-client.*#clients/$name#g")
     loc=$(echo $loc | sed -E "s#.+-server.*#servers/$name#g")
     loc=$(echo $loc | sed -E "s#docs|activitywatch.github.io#website/$name#g")
-    echo $name $loc
+    echo "  $name -> $loc"
     if [ -d "$rootdir/$path" ]; then
-        gource --output-custom-log $tmpdir/$name.txt $rootdir/$path
-        sed -i -r "s#(.+)\\|#\\1|/$loc#" $tmpdir/$name.txt
+        gource --output-custom-log $tmpdir/$name.txt $rootdir/$path 2>/dev/null || echo "    (skipped)"
+        sed -i -r "s#(.+)\\|#\\1|/$loc#" $tmpdir/$name.txt 2>/dev/null || true
     else
-        echo "  -> Skipping (not found): $rootdir/$path"
+        echo "    -> Skipping (not found): $rootdir/$path"
     fi
 done
 
-# Process community modules
-for path in "${community_modules[@]}"; do
-    name=$(basename $path)
-    # Categorize community modules
+# Process community repos (auto-cloned from GitHub)
+echo ""
+echo "=== Processing community repos ==="
+for repo in "${community_repos[@]}"; do
+    name=$(basename $repo)
     if [[ $name == *"watcher"* ]] || [[ $name == "awatcher" ]]; then
         loc="watchers/community/$name"
     elif [[ $name == *"plasmoid"* ]] || [[ $name == *"widget"* ]]; then
@@ -90,12 +108,40 @@ for path in "${community_modules[@]}"; do
     else
         loc="community/$name"
     fi
-    echo "$name -> $loc (community)"
-    if [ -d "$rootdir/$path" ]; then
-        gource --output-custom-log $tmpdir/$name.txt $rootdir/$path
-        sed -i -r "s#(.+)\\|#\\1|/$loc#" $tmpdir/$name.txt
+    if [ -d "$communitydir/$name" ]; then
+        echo "  $name -> $loc"
+        gource --output-custom-log $tmpdir/community-$name.txt $communitydir/$name 2>/dev/null || echo "    (skipped)"
+        sed -i -r "s#(.+)\\|#\\1|/$loc#" $tmpdir/community-$name.txt 2>/dev/null || true
+    fi
+done
+
+# Also process any locally-cloned community repos (if present)
+community_local=(
+    community/awatcher
+    community/aw-watcher-media-player
+    other/aw-watcher-vscode
+    other/aw-watcher-vim
+    community/aw-watcher-jetbrains
+    community/activitywatch-plasmoid
+)
+
+for path in "${community_local[@]}"; do
+    name=$(basename $path)
+    # Skip if already processed from auto-clone
+    [ -f "$tmpdir/community-$name.txt" ] && continue
+    if [[ $name == *"watcher"* ]] || [[ $name == "awatcher" ]]; then
+        loc="watchers/community/$name"
+    elif [[ $name == *"plasmoid"* ]] || [[ $name == *"widget"* ]]; then
+        loc="widgets/$name"
     else
-        echo "  -> Skipping (not found): $rootdir/$path"
+        loc="community/$name"
+    fi
+    echo "  $name -> $loc (local)"
+    if [ -d "$rootdir/$path" ]; then
+        gource --output-custom-log $tmpdir/$name.txt $rootdir/$path 2>/dev/null || echo "    (skipped)"
+        sed -i -r "s#(.+)\\|#\\1|/$loc#" $tmpdir/$name.txt 2>/dev/null || true
+    else
+        echo "    -> Skipping (not found): $rootdir/$path"
     fi
 done
 
@@ -106,7 +152,7 @@ sed -E 's/.+[|](.+)[|].+[|](.+)/1461708000|\1|D|\2/g' $tmpdir/activitywatch-old.
 gourcelog=$tmpdir/combined.gource
 
 # Combine all the logs into one log
-cat $tmpdir/*.txt | sort -n > $gourcelog
+cat $tmpdir/*.txt 2>/dev/null | sort -n > $gourcelog
 
 # Rename activitywatch-old so it behaves like top dir
 sed -i 's#activitywatch-old/##g' $gourcelog
@@ -115,11 +161,14 @@ sed -i 's#activitywatch-old/##g' $gourcelog
 sed -i -E 's#.+/.github/##g' $gourcelog
 
 # Color certain file extensions a certain way
-sed -i 's/[.]py/\0|4B8BBE/g' $gourcelog
-sed -i 's/[.]rs$/\0|FFAA33/g' $gourcelog
-sed -i 's/[.]js/\0|F0DB4F/g' $gourcelog
-sed -i 's/[.]ts/\0|007ACC/g' $gourcelog
-sed -i 's/[.]vue/\0|41B883/g' $gourcelog
+sed -i 's/[.]py/\0|4B8BBE/g' $gourcelog      # Python - blue
+sed -i 's/[.]rs$/\0|FFAA33/g' $gourcelog     # Rust - orange
+sed -i 's/[.]js/\0|F0DB4F/g' $gourcelog      # JavaScript - yellow
+sed -i 's/[.]ts/\0|007ACC/g' $gourcelog      # TypeScript - blue
+sed -i 's/[.]vue/\0|41B883/g' $gourcelog     # Vue - green
+sed -i 's/[.]go$/\0|00ADD8/g' $gourcelog     # Go - cyan
+sed -i 's/[.]kt$/\0|7F52FF/g' $gourcelog     # Kotlin - purple
+sed -i 's/[.]java$/\0|B07219/g' $gourcelog   # Java - brown
 
 # Docs
 sed -i -E 's/[.](md|rst|txt)|LICENSE$/\0|FF5555/g' $gourcelog
@@ -145,18 +194,40 @@ sed -i 's/.*ErikBjare.*//g' $gourcelog
 
 # Prepare avatars
 # TODO: Doesn't fetch avatars from all repos (only the ones with most contributors)
-# run for contributor-stats repo, initialized .git/avatars folder
+# TODO: Dynamic avatar evolution - change user avatars over time to reflect
+#       their profile picture at that point in history. This would require:
+#       1. GitHub API to fetch historical avatar URLs (if available) or
+#       2. Wayback Machine integration to get historical profile pictures
+#       3. Gource custom avatar timeline support (may need patching gource)
+#       For now, avatars are static (most recent profile picture)
 if [ -d .git/avatar ]; then
-    perl fetch-avatars.pl  
+    perl fetch-avatars.pl 2>/dev/null || echo "Avatar fetch skipped"
     # run for bundle repo, move avatars to local .git/avatars
     fetchsrc=$(realpath fetch-avatars.pl)
-    pushd $rootdir; perl $fetchsrc; popd; mv $rootdir/.git/avatar/* .git/avatar 2>/dev/null || true
-    pushd $rootdir/aw-server/aw-webui; perl $fetchsrc; popd; mv $rootdir/aw-server/aw-webui/.git/avatar/* .git/avatar 2>/dev/null || true
-    pushd $rootdir/docs; perl $fetchsrc; popd; mv $rootdir/docs/.git/avatar/* .git/avatar 2>/dev/null || true
+    if [ -d "$rootdir/.git" ]; then
+        pushd $rootdir > /dev/null; perl $fetchsrc 2>/dev/null || true; popd > /dev/null
+        [ -d "$rootdir/.git/avatar" ] && mv $rootdir/.git/avatar/* .git/avatar 2>/dev/null || true
+    fi
+    if [ -d "$rootdir/aw-server/aw-webui/.git" ]; then
+        pushd $rootdir/aw-server/aw-webui > /dev/null; perl $fetchsrc 2>/dev/null || true; popd > /dev/null
+        [ -d "$rootdir/aw-server/aw-webui/.git/avatar" ] && mv $rootdir/aw-server/aw-webui/.git/avatar/* .git/avatar 2>/dev/null || true
+    fi
+    if [ -d "$rootdir/docs/.git" ]; then
+        pushd $rootdir/docs > /dev/null; perl $fetchsrc 2>/dev/null || true; popd > /dev/null
+        [ -d "$rootdir/docs/.git/avatar" ] && mv $rootdir/docs/.git/avatar/* .git/avatar 2>/dev/null || true
+    fi
+    # Fetch avatars for auto-cloned community contributors
+    for repo in "${community_repos[@]}"; do
+        name=$(basename $repo)
+        if [ -d "$communitydir/$name/.git" ]; then
+            pushd $communitydir/$name > /dev/null; perl $fetchsrc 2>/dev/null || true; popd > /dev/null
+            [ -d "$communitydir/$name/.git/avatar" ] && mv $communitydir/$name/.git/avatar/* .git/avatar 2>/dev/null || true
+        fi
+    done
 fi
 
 # Rename avatars to suit committer name
-[ -f ../.git/avatar/johan-bjareholt.png ] && cp ../.git/avatar/johan-bjareholt.png '../.git/avatar/Johan Bjäreholt.png'
+[ -f ".git/avatar/johan-bjareholt.png" ] && cp .git/avatar/johan-bjareholt.png '.git/avatar/Johan Bjäreholt.png' 2>/dev/null || true
 
 # Resolutions:
 #  - 2560x1440 (for upload)
@@ -170,7 +241,7 @@ res_low=1280x720
 # this would be nice, but unfortunately counts directories...
 # --file-extension-fallback
 gource_options=(
-    --title 'ActivityWatch (https://activitywatch.net)'
+    --title 'ActivityWatch Development 2014-2025+ (https://activitywatch.net)'
     --caption-file gource-captions.txt
     --user-image-dir ../.git/avatar/
     --key --file-idle-time 0
@@ -194,8 +265,12 @@ gource_options=(
     $gourcelog
 )
 
-echo "Visualizing"
+echo ""
+echo "=== Visualizing ==="
 gource "${gource_options[@]}"
 
 # To render video
+echo ""
+echo "=== Rendering video ==="
 gource "${gource_options[@]}" -o - | ffmpeg -y -r 60 -f image2pipe -vcodec ppm -i - -vcodec libx264 -preset ultrafast -pix_fmt yuv420p -crf 1 -threads 0 -bf 0 gource.mp4
+echo "Done! Output: gource.mp4"
