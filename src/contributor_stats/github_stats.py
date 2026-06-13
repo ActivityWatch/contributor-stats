@@ -1,16 +1,19 @@
 from __future__ import annotations
 
 import itertools
+import json
 import logging
 import os
+import subprocess
+import time
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import TypedDict
+from typing import Callable, TypedDict
 
 import pandas as pd
-from github import Github
+from github import Github, RateLimitExceededException
 from github.Repository import Repository
 from joblib import Memory
 from tqdm import tqdm
@@ -21,9 +24,17 @@ script_dir = Path(__file__).parent
 project_dir = script_dir.parent.parent
 memory = Memory(project_dir / ".cache" / "github-stats")
 
+# Date to sync from when a repo has no recorded sync state yet.
+DEFAULT_SINCE = datetime(1999, 1, 1)
+
+# Cumulative per-user/per-repo stats, persisted between runs so each run only
+# has to fetch activity since the last sync (see _load_state/_save_state).
+STATE_PATH = project_dir / "github-stats-state.json"
+
 
 def _is_bot(username):
-    return "[bot]" in username
+    # Same filter the published table uses: app accounts end in "[bot]".
+    return username.endswith("[bot]")
 
 
 def _sort_dict_by_value(d: dict) -> dict:
@@ -34,8 +45,11 @@ class CommentStats(TypedDict):
     count: dict[str, int]
     words: dict[str, int]
     days: dict[str, set[date]]
-    reacts_given: dict[str, int]
-    reacts_received: dict[str, int]
+
+
+class CountWithDays(TypedDict):
+    count: dict[str, int]
+    days: dict[str, set[date]]
 
 
 @memory.cache(ignore=["gh"])
@@ -47,9 +61,13 @@ def _comments_by_user(gh: Github, repo_fullname: str, since: datetime) -> Commen
     comments_by_user: dict[str, int] = defaultdict(int)
     words_by_user: dict[str, int] = defaultdict(int)
     days_by_user: dict[str, set[date]] = defaultdict(set)
-    positive_reacts_to_user: dict[str, int] = defaultdict(int)
-    positive_reacts_by_user: dict[str, int] = defaultdict(int)
 
+    # NOTE: `since` filters on the comment's `updated_at`, not `created_at`.
+    # In incremental runs (see _merge_stat), a comment edited after the
+    # last sync will be re-counted here, double-counting it in the cumulative
+    # totals. Considered rare enough relative to total volume to ignore.
+    # NOTE: reactions are deliberately not fetched: get_reactions() costs one
+    # API request per comment and the result was unused downstream.
     for comment in repo.get_issues_comments(since=since):
         print(comment)
         if _is_bot(comment.user.login):
@@ -57,125 +75,264 @@ def _comments_by_user(gh: Github, repo_fullname: str, since: datetime) -> Commen
         comments_by_user[comment.user.login] += 1
         words_by_user[comment.user.login] += len(comment.body.split())
         days_by_user[comment.user.login].add(comment.created_at.date())
-        reactions = list(comment.get_reactions())
-
-        for reaction in reactions:
-            if reaction.content in ["+1", "hooray", "heart", "rocket"]:
-                # Positive reacts (given) by user
-                positive_reacts_by_user[reaction.user.login] += 1
-                # Positive reacts (received) to user
-                positive_reacts_to_user[comment.user.login] += 1
 
     return CommentStats(
         count=_sort_dict_by_value(comments_by_user),
         words=_sort_dict_by_value(words_by_user),
         days=dict(days_by_user),
-        reacts_given=_sort_dict_by_value(positive_reacts_by_user),
-        reacts_received=_sort_dict_by_value(positive_reacts_to_user),
     )
 
 
 @memory.cache(ignore=["gh"])
-def _issues_by_user(gh: Github, repo_fullname: str, since: datetime) -> dict[str, int]:
+def _issues_by_user(gh: Github, repo_fullname: str, since: datetime) -> CountWithDays:
     """Retrieving issue statistics by user"""
     logger.info(" - Getting issues by user...")
     repo: Repository = gh.get_repo(repo_fullname)
     issues_by_user: dict[str, int] = defaultdict(int)
+    days_by_user: dict[str, set[date]] = defaultdict(set)
     for issue in repo.get_issues(state="all", since=since):
         # TODO: Don't count issues tagged as invalid
         print(issue)
         if issue.created_at < since:
             continue
         issues_by_user[issue.user.login] += 1
-    return _sort_dict_by_value(issues_by_user)
+        days_by_user[issue.user.login].add(issue.created_at.date())
+    return CountWithDays(
+        count=_sort_dict_by_value(issues_by_user), days=dict(days_by_user)
+    )
 
 
 @memory.cache(ignore=["gh"])
 def _pr_comments_by_user(
     gh: Github, repo_fullname: str, since: datetime
-) -> dict[str, int]:
+) -> CountWithDays:
     logger.info(" - Getting PR comments by user...")
     repo: Repository = gh.get_repo(repo_fullname)
     pr_comments_by_user: dict[str, int] = defaultdict(int)
+    days_by_user: dict[str, set[date]] = defaultdict(set)
+    # NOTE: same `updated_at`-vs-`created_at` caveat as _comments_by_user above.
     for pr_comment in repo.get_pulls_comments(since=since):
         pr_comments_by_user[pr_comment.user.login] += 1
-    return _sort_dict_by_value(pr_comments_by_user)
+        days_by_user[pr_comment.user.login].add(pr_comment.created_at.date())
+    return CountWithDays(
+        count=_sort_dict_by_value(pr_comments_by_user), days=dict(days_by_user)
+    )
 
 
 @memory.cache(ignore=["gh"])
-def _submitted_prs(gh: Github, repo_fullname: str, since: datetime):
-    """returns the number of merged PRs"""
+def _submitted_prs(gh: Github, repo_fullname: str, since: datetime) -> CountWithDays:
+    """returns the number of submitted PRs per user"""
     logger.info(" - Getting submitted PRs...")
     repo: Repository = gh.get_repo(repo_fullname)
     count_by_user: dict[str, int] = defaultdict(int)
+    days_by_user: dict[str, set[date]] = defaultdict(set)
     for pr in repo.get_pulls(state="all", sort="created", direction="desc"):
         if pr.created_at < since:
             break
         count_by_user[pr.user.login] += 1
-    return count_by_user
+        days_by_user[pr.user.login].add(pr.created_at.date())
+    return CountWithDays(count=dict(count_by_user), days=dict(days_by_user))
 
 
 @memory.cache(ignore=["gh"])
 def _merged_prs_by_user(
     gh: Github, repo_fullname: str, since: datetime
-) -> dict[str, int]:
+) -> CountWithDays:
     """returns the number of merged PRs per user"""
     logger.info(" - Getting merged PRs...")
     repo: Repository = gh.get_repo(repo_fullname)
     merged_prs_by_user: dict[str, int] = defaultdict(int)
+    days_by_user: dict[str, set[date]] = defaultdict(set)
     for pr in repo.get_pulls(state="closed", sort="updated", direction="desc"):
         if pr.updated_at < since:
             break
         if not pr.merged or pr.merged_at < since:
             continue
         merged_prs_by_user[pr.user.login] += 1
-    return merged_prs_by_user
+        days_by_user[pr.user.login].add(pr.merged_at.date())
+    return CountWithDays(count=dict(merged_prs_by_user), days=dict(days_by_user))
 
 
-# "I" wrote this with Github Copilot, don't trust it...
-# Probably uses *tons* of API calls
-# TODO: Can probably be optimized by first getting all the issues/PRs/comments,
-#       putting them in some cache, and then iterating over them.
-@memory.cache(ignore=["gh"])
-def _get_active_days_by_user(
-    gh: Github, repo_fullname: str, since: datetime
-) -> dict[str, set[date]]:
-    """
-    Iterates through all issues, comments and PRs to build a set of days where user was active.
-    # return a dict {username: set([date1, ...]), ...}
-    """
-    logger.info(" - Getting active days by user...")
-    repo: Repository = gh.get_repo(repo_fullname)
-    active_days_by_user = defaultdict(set)
-    # issues created
-    for issue in repo.get_issues(state="all", since=since):
-        if issue.created_at < since:
-            break
-        active_days_by_user[issue.user.login].add(issue.created_at.date())
-    # comments
-    for comment in repo.get_issues_comments(since=since):
-        if comment.created_at < since:
-            continue
-        active_days_by_user[comment.user.login].add(comment.created_at.date())
-    # pulls created
-    for pr in repo.get_pulls(state="all", sort="created", direction="desc"):
-        if pr.created_at < since:
-            break
-        active_days_by_user[pr.user.login].add(pr.created_at.date())
-    # pulls merged
-    for pr in repo.get_pulls(state="closed", sort="updated", direction="desc"):
-        if pr.updated_at < since:
-            break
-        if not pr.merged or pr.merged_at < since:
-            continue
-        active_days_by_user[pr.user.login].add(pr.merged_at.date())
-    # TODO: pull commits & comments
-    return active_days_by_user
+# One fetcher per stat; each stat is fetched, merged and timestamped
+# independently so a run interrupted mid-repo can checkpoint and resume.
+# Active days are derived from the objects these fetchers already iterate
+# (each reports the days it saw activity on), so no separate fetch is needed.
+STAT_FETCHERS: dict[str, Callable] = {
+    "issues": _issues_by_user,
+    "comments": _comments_by_user,
+    "prs": _submitted_prs,
+    "prs_merged": _merged_prs_by_user,
+    "pr_comments": _pr_comments_by_user,
+}
+
+
+def _empty_user_stats() -> dict:
+    return {
+        "issues": 0,
+        "comments": 0,
+        "comment_words": 0,
+        "prs": 0,
+        "prs_merged": 0,
+        "pr_comments": 0,
+        "active_days": set(),
+    }
+
+
+def _load_state() -> dict:
+    """Load cumulative per-repo/per-user stats from a previous run, if any."""
+    if not STATE_PATH.exists():
+        return {"repos": {}}
+
+    with STATE_PATH.open() as f:
+        state = json.load(f)
+
+    for repo_state in state.get("repos", {}).values():
+        # Older states stored a single timestamp per repo; expand it to the
+        # per-stat timestamps used since partial-sync checkpoints were added.
+        last_synced = repo_state.get("last_synced")
+        if last_synced is None:
+            repo_state["last_synced"] = {}
+        elif isinstance(last_synced, str):
+            repo_state["last_synced"] = {stat: last_synced for stat in STAT_FETCHERS}
+        # Purge bot rows saved by earlier runs that didn't filter them.
+        repo_state["users"] = {
+            user: user_stats
+            for user, user_stats in repo_state.get("users", {}).items()
+            if not _is_bot(user)
+        }
+        for user_stats in repo_state["users"].values():
+            user_stats["active_days"] = {
+                date.fromisoformat(d) for d in user_stats.get("active_days", [])
+            }
+    return state
+
+
+def _save_state(state: dict) -> None:
+    """Persist cumulative per-repo/per-user stats for the next run."""
+    serializable = {
+        "repos": {
+            repo_name: {
+                "last_synced": repo_state["last_synced"],
+                "users": {
+                    user: {
+                        **{k: v for k, v in user_stats.items() if k != "active_days"},
+                        "active_days": sorted(
+                            d.isoformat() for d in user_stats["active_days"]
+                        ),
+                    }
+                    for user, user_stats in repo_state.get("users", {}).items()
+                },
+            }
+            for repo_name, repo_state in state.get("repos", {}).items()
+        }
+    }
+    with STATE_PATH.open("w") as f:
+        json.dump(serializable, f, indent=2, sort_keys=True)
+
+
+def _merge_stat(repo_state: dict, stat: str, data) -> None:
+    """Add a freshly-fetched delta for one stat onto the cumulative totals."""
+    # Drop bot accounts entirely, matching the published table's filter.
+    data = {
+        key: {user: v for user, v in d.items() if not _is_bot(user)}
+        for key, d in data.items()
+    }
+    users = repo_state.setdefault("users", {})
+    if stat == "comments":
+        for user in set(data["count"]) | set(data["words"]):
+            stats = users.setdefault(user, _empty_user_stats())
+            stats["comments"] += data["count"].get(user, 0)
+            stats["comment_words"] += data["words"].get(user, 0)
+    else:  # issues, prs, prs_merged, pr_comments
+        for user, count in data["count"].items():
+            users.setdefault(user, _empty_user_stats())[stat] += count
+    # Every fetcher reports the days it saw activity on; set-union makes
+    # merging the same day twice harmless.
+    for user, days in data["days"].items():
+        users.setdefault(user, _empty_user_stats())["active_days"] |= days
 
 
 def _init_gh():
     GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-    return Github(GITHUB_TOKEN)
+    # per_page=100 (max) to minimize pagination requests; the Actions
+    # GITHUB_TOKEN only gets 1000 requests/hour.
+    return Github(GITHUB_TOKEN, per_page=100)
+
+
+def _commit_state() -> None:
+    """Commit & push the state file so progress survives if the job is killed.
+
+    Only does anything when running in GitHub Actions; failures are logged
+    but never fatal (the end-of-workflow commit step is the primary path).
+    """
+    if os.getenv("GITHUB_ACTIONS") != "true" or not STATE_PATH.exists():
+        return
+    git = ["git", "-C", str(project_dir)]
+    subprocess.run([*git, "add", str(STATE_PATH)], check=False)
+    if subprocess.run([*git, "diff", "--cached", "--quiet"]).returncode == 0:
+        return  # no staged changes
+    commit = subprocess.run(
+        [
+            *git,
+            "-c",
+            "user.name=github-actions[bot]",
+            "-c",
+            "user.email=github-actions[bot]@users.noreply.github.com",
+            "commit",
+            "-m",
+            "chore: checkpoint github stats state",
+        ],
+        check=False,
+    )
+    if commit.returncode == 0:
+        push = subprocess.run([*git, "push"], check=False)
+        if push.returncode != 0:
+            logger.warning("Failed to push state checkpoint")
+
+
+def _sleep_until_rate_limit_reset(gh: Github) -> None:
+    # Checkpoint progress first: the sleep can be up to an hour, during which
+    # the job may hit the 6h runner limit or get cancelled.
+    _commit_state()
+    wait = max(gh.rate_limiting_resettime - time.time(), 0) + 10
+    logger.warning(f"Rate limit exceeded, sleeping {wait:.0f}s until reset...")
+    time.sleep(wait)
+
+
+def _sync_repo(gh: Github, state: dict, repo_fullname: str) -> None:
+    """Fetch and merge all stat deltas for a repo, one stat at a time.
+
+    Each stat keeps its own last-synced timestamp and is merged into the
+    state as soon as it's fetched, so the state checkpointed before a
+    rate-limit sleep includes partial progress, even mid-repo. A later run
+    then only re-fetches the stats that were still pending.
+    """
+    repo_state = state["repos"].setdefault(
+        repo_fullname, {"last_synced": {}, "users": {}}
+    )
+    last_synced = repo_state["last_synced"]
+    for stat, fetcher in STAT_FETCHERS.items():
+        since = (
+            datetime.fromisoformat(last_synced[stat])
+            if last_synced.get(stat)
+            else DEFAULT_SINCE
+        )
+        while True:
+            try:
+                data = fetcher(gh, repo_fullname, since=since)
+                break
+            except RateLimitExceededException:
+                # Persist everything merged so far so the checkpoint commit
+                # made before sleeping includes partial progress.
+                _save_state(state)
+                _sleep_until_rate_limit_reset(gh)
+        _merge_stat(repo_state, stat, data)
+        # Recorded after fetching, so the next run's `since` doesn't skip
+        # activity that happened while this run was fetching.
+        last_synced[stat] = (
+            datetime.now(timezone.utc).replace(tzinfo=None).isoformat()
+        )
+    _save_state(state)
 
 
 @dataclass
@@ -183,7 +340,7 @@ class RepoStats:
     # most stats are per user
 
     issues: dict[str, int]
-    comments: dict[str, CommentStats]
+    comments: CommentStats
     prs: dict[str, int]
     prs_merged: dict[str, int]
     pr_comments: dict[str, int]
@@ -192,59 +349,73 @@ class RepoStats:
     df: pd.DataFrame
 
 
-def main() -> None:
-    gh = _init_gh()
-    # since = datetime(2023, 1, 1)
-    since = datetime(1999, 1, 1)
+WHITELIST = [
+    "activitywatch",
+    "activitywatch-old",
+    "docs",
+    "aw-core",
+    "aw-client",
+    "aw-client-js",
+    "aw-client-rust",
+    "aw-server",
+    "aw-server-rust",
+    "aw-watcher-window",
+    "aw-watcher-window-wayland",
+    "aw-watcher-afk",
+    "aw-watcher-input",
+    "aw-watcher-web",
+    "aw-watcher-vim",
+    "aw-watcher-vscode",
+    "aw-notify",
+    "aw-webui",
+    "aw-qt",
+    "aw-tauri",
+    "aw-android",
+    "aw-leaderboard-rust",
+    "aw-leaderboard-firebase",
+    "activitywatch.github.io",
+    "awatcher",
+]
 
-    repostats: dict[str, RepoStats] = {}
 
-    whitelist = [
-        "activitywatch",
-        "activitywatch-old",
-        "docs",
-        "aw-core",
-        "aw-client",
-        "aw-client-js",
-        "aw-client-rust",
-        "aw-server",
-        "aw-server-rust",
-        "aw-watcher-window",
-        "aw-watcher-window-wayland",
-        "aw-watcher-afk",
-        "aw-watcher-input",
-        "aw-watcher-web",
-        "aw-watcher-vim",
-        "aw-watcher-vscode",
-        "aw-notify",
-        "aw-webui",
-        "aw-qt",
-        "aw-tauri",
-        "aw-android",
-        "aw-leaderboard-rust",
-        "aw-leaderboard-firebase",
-        "activitywatch.github.io",
-        "awatcher",
-    ]
-
-    repos = gh.get_user("ActivityWatch").get_repos()
-    repos = [repo for repo in repos if repo.name in whitelist]
+def _sync(gh: Github, state: dict) -> None:
+    """Fetch and merge stats for every whitelisted repo into the state."""
+    while True:
+        try:
+            repos = [
+                repo
+                for repo in gh.get_user("ActivityWatch").get_repos()
+                if repo.name in WHITELIST
+            ]
+            break
+        except RateLimitExceededException:
+            _sleep_until_rate_limit_reset(gh)
     for repo in tqdm(repos):
         logger.info(f"Processing for {repo.name}...")
+        _sync_repo(gh, state, repo.full_name)
 
-        repostats[repo.name] = RepoStats(
-            issues=_issues_by_user(gh, repo.full_name, since=since),
-            comments=_comments_by_user(gh, repo.full_name, since=since),
-            prs=_submitted_prs(gh, repo.full_name, since=since),
-            prs_merged=_merged_prs_by_user(gh, repo.full_name, since=since),
-            pr_comments=_pr_comments_by_user(gh, repo.full_name, since=since),
-            active_days_set=_get_active_days_by_user(gh, repo.full_name, since=since),
+
+def _render_table(state: dict) -> None:
+    """Render the HTML activity table from saved state (no API calls)."""
+    repostats: dict[str, RepoStats] = {}
+    for repo_fullname, repo_state in state["repos"].items():
+        users = repo_state["users"]
+        name = repo_fullname.split("/")[-1]
+        repostats[name] = RepoStats(
+            issues={user: stats["issues"] for user, stats in users.items()},
+            comments=CommentStats(
+                count={user: stats["comments"] for user, stats in users.items()},
+                words={user: stats["comment_words"] for user, stats in users.items()},
+                days={},
+            ),
+            prs={user: stats["prs"] for user, stats in users.items()},
+            prs_merged={user: stats["prs_merged"] for user, stats in users.items()},
+            pr_comments={user: stats["pr_comments"] for user, stats in users.items()},
+            active_days_set={
+                user: stats["active_days"] for user, stats in users.items()
+            },
             df=None,
         )
-
-    # pprint(repostats)
-    # FIXME: pprint should use sort_dicts=False (added in Python 3.8)
-    # pprint(repostats["activitywatch"])
 
     all_users = set(
         user
@@ -287,9 +458,17 @@ def main() -> None:
             ],
         )
 
-        # issues include PRs, so we need to subtract them
-        assert (df["issues"] >= df["prs"]).all()
-        df["issues"] -= df["prs"]
+        # issues include PRs, so we need to subtract them.
+        # A PR created mid-run (after the issues fetch but before the PR
+        # fetch) can make prs briefly exceed issues; the next incremental
+        # run counts that PR as an issue and self-corrects the cumulative
+        # totals, so clip instead of crashing.
+        neg = df["prs"] > df["issues"]
+        if neg.any():
+            logger.warning(
+                f"prs > issues for {df.loc[neg, 'user'].tolist()}, clipping"
+            )
+        df["issues"] = (df["issues"] - df["prs"]).clip(lower=0)
 
         df["total"] = (
             df["issues"]
@@ -401,6 +580,26 @@ def main() -> None:
     print("Done!")
 
 
+def main(render_only: bool = False) -> None:
+    state = _load_state()
+    if not render_only:
+        gh = _init_gh()
+        _sync(gh, state)
+    _render_table(state)
+
+
 if __name__ == "__main__":
+    import argparse
+
     logging.basicConfig(level=logging.INFO)
-    main()
+    parser = argparse.ArgumentParser(
+        description="Sync GitHub contribution stats and render the activity table."
+    )
+    parser.add_argument(
+        "--render-only",
+        action="store_true",
+        help="Render the table from github-stats-state.json without calling "
+        "the GitHub API (no token required).",
+    )
+    args = parser.parse_args()
+    main(render_only=args.render_only)

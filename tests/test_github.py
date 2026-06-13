@@ -19,7 +19,7 @@ def test_comments_by_user(gh: Github):
     repo = "activitywatch/aw-client"  # smaller repo for testing
     comments = _comments_by_user(gh, repo, since)
     pprint(comments)
-    assert len(comments) > 0
+    assert len(comments["count"]) > 0
 
 
 def test_issues_by_user(gh: Github):
@@ -30,7 +30,7 @@ def test_issues_by_user(gh: Github):
     issues = _issues_by_user(gh, repo, since)
     print("issues_by_user")
     pprint(issues)
-    assert len(issues) > 0
+    assert len(issues["count"]) > 0
 
 
 def test_pr_comments_by_user(gh: Github):
@@ -41,7 +41,7 @@ def test_pr_comments_by_user(gh: Github):
     pr_comments = _pr_comments_by_user(gh, repo, since)
     print("pr_comments")
     pprint(pr_comments)
-    assert len(pr_comments) > 0
+    assert len(pr_comments["count"]) > 0
 
 
 
@@ -53,4 +53,4 @@ def test_submitted_prs(gh: Github):
     submitted_prs = _submitted_prs(gh, repo, since)
     print("submitted_prs")
     pprint(submitted_prs)
-    assert submitted_prs
+    assert submitted_prs["count"]
