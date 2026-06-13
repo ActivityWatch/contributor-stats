@@ -5,7 +5,17 @@ on:
     # Every 6 hours starting at 00:00 UTC. The website rebuilds at 00:30 UTC,
     # so the 00:00 run keeps its GitHub stats table at most ~30 min stale.
     - cron: '0 */6 * * *'
+    # Monthly full resync (1st, 01:00 UTC): incremental syncs never re-read
+    # history, so renamed/deleted users accumulate stale rows under their
+    # old login. Rebuilding from scratch re-attributes everything to
+    # current logins.
+    - cron: '0 1 1 * *'
   workflow_dispatch:
+    inputs:
+      full_resync:
+        description: 'Discard saved state and resync all history'
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -33,6 +43,10 @@ jobs:
       run: |
         pip install poetry
         poetry install
+
+    - name: Reset state for full resync
+      if: github.event.schedule == '0 1 1 * *' || inputs.full_resync
+      run: rm -f github-stats-state.json
 
     - name: Sync GitHub stats state
       env:
