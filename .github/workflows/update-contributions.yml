@@ -1,0 +1,67 @@
+name: Update GitHub contributions table
+
+on:
+  schedule:
+    # Every 6 hours starting at 00:00 UTC. The website rebuilds at 00:30 UTC,
+    # so the 00:00 run keeps its GitHub stats table at most ~30 min stale.
+    - cron: '0 */6 * * *'
+    # Monthly full resync (1st, 01:00 UTC): incremental syncs never re-read
+    # history, so renamed/deleted users accumulate stale rows under their
+    # old login. Rebuilding from scratch re-attributes everything to
+    # current logins.
+    - cron: '0 1 1 * *'
+  workflow_dispatch:
+    inputs:
+      full_resync:
+        description: 'Discard saved state and resync all history'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+# Queue overlapping runs (e.g. a manual dispatch during a scheduled run, or a
+# rate-limit sleep pushing one run past the next 6-hour tick) instead of racing
+# them, so the final push isn't rejected as non-fast-forward. Don't cancel an
+# in-progress run — it may be mid-checkpoint during a rate-limit sleep.
+concurrency:
+  group: update-contributions
+  cancel-in-progress: false
+
+jobs:
+  update-table:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install dependencies
+      run: |
+        pip install poetry
+        poetry install
+
+    - name: Reset state for full resync
+      if: github.event.schedule == '0 1 1 * *' || inputs.full_resync
+      run: rm -f github-stats-state.json
+
+    - name: Sync GitHub stats state
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: poetry run python3 src/contributor_stats/github_stats.py
+
+    - name: Commit and push if changed
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        # Only the data is committed; the website renders the HTML table from it.
+        git add github-stats-state.json
+        if git diff --cached --quiet; then
+          echo "No changes to commit"
+        else
+          git commit -m "chore: update GitHub stats sync state"
+          git push
+        fi

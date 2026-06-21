@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python_version: ['3.10']
+        python_version: ['3.12']
     steps:
     - uses: actions/checkout@v3
       with:
@@ -35,6 +35,8 @@ jobs:
         poetry install
     - name: Run tests
       shell: bash
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         source venv/bin/activate || source venv/Scripts/activate
         make test
@@ -46,7 +48,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest]
-        python_version: ['3.10']
+        python_version: ['3.12']
     steps:
     - uses: actions/checkout@v3
       with:

@@ -213,7 +213,7 @@ def merge_tables(tables: Dict[str, Table]):
         for name, _ in table.items():
             names.add(name)
 
-    merged_table: Table = OrderedDict([(name, dict(**zero_row)) for name in names])
+    merged_table: Table = OrderedDict([(name, dict(**zero_row)) for name in names])  # type: ignore[dict-item]
     for table in tables.values():
         for name in names:
             if name in table:

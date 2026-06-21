@@ -35,6 +35,12 @@ build-aw: clone-aw
 build-sl: clone-sl
 	python3 src/contributor_stats/main.py $(addprefix repos/,$(REPOS_SL))
 
+# Render the GitHub activity table from the committed github-stats-state.json,
+# without calling the GitHub API. The website build (the consumer) uses this to
+# generate the table rather than committing the HTML here.
+render:
+	poetry run python3 src/contributor_stats/github_stats.py --render-only
+
 clone-aw: $(patsubst %, repos/%, $(REPOS_AW))
 clone-sl: $(patsubst %, repos/%, $(REPOS_SL))
 
