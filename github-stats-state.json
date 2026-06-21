@@ -2,11 +2,11 @@
   "repos": {
     "ActivityWatch/activitywatch": {
       "last_synced": {
-        "comments": "2026-06-12T20:26:54.695284",
-        "issues": "2026-06-12T20:26:54.210098",
-        "pr_comments": "2026-06-12T20:26:57.487905",
-        "prs": "2026-06-12T20:26:55.948460",
-        "prs_merged": "2026-06-12T20:26:57.046016"
+        "comments": "2026-06-21T14:27:47.889234",
+        "issues": "2026-06-21T14:27:47.475160",
+        "pr_comments": "2026-06-21T14:27:50.621432",
+        "prs": "2026-06-21T14:27:48.811976",
+        "prs_merged": "2026-06-21T14:27:50.284804"
       },
       "users": {
         "0xAshish": {
@@ -2538,6 +2538,17 @@
           "prs": 0,
           "prs_merged": 0
         },
+        "Huaian666": {
+          "active_days": [
+            "2026-06-14"
+          ],
+          "comment_words": 16,
+          "comments": 1,
+          "issues": 0,
+          "pr_comments": 0,
+          "prs": 0,
+          "prs_merged": 0
+        },
         "Humam-Hamdan": {
           "active_days": [
             "2024-06-23",
@@ -4478,14 +4489,16 @@
             "2026-06-01",
             "2026-06-04",
             "2026-06-07",
-            "2026-06-11"
+            "2026-06-11",
+            "2026-06-18",
+            "2026-06-19"
           ],
-          "comment_words": 16390,
-          "comments": 159,
-          "issues": 33,
+          "comment_words": 16474,
+          "comments": 160,
+          "issues": 35,
           "pr_comments": 30,
-          "prs": 29,
-          "prs_merged": 22
+          "prs": 31,
+          "prs_merged": 24
         },
         "TimoRenk-nebumind": {
           "active_days": [
@@ -5681,6 +5694,17 @@
           "issues": 0,
           "pr_comments": 0,
           "prs": 0,
+          "prs_merged": 0
+        },
+        "behdadmansouri": {
+          "active_days": [
+            "2026-06-17"
+          ],
+          "comment_words": 0,
+          "comments": 0,
+          "issues": 1,
+          "pr_comments": 0,
+          "prs": 1,
           "prs_merged": 0
         },
         "bengineerdavis": {
@@ -12112,10 +12136,11 @@
             "2022-10-25",
             "2023-01-04",
             "2025-01-22",
-            "2025-03-19"
+            "2025-03-19",
+            "2026-06-17"
           ],
-          "comment_words": 1482,
-          "comments": 27,
+          "comment_words": 1530,
+          "comments": 28,
           "issues": 8,
           "pr_comments": 0,
           "prs": 0,
@@ -14235,11 +14260,11 @@
     },
     "ActivityWatch/activitywatch-old": {
       "last_synced": {
-        "comments": "2026-06-12T20:26:58.631186",
-        "issues": "2026-06-12T20:26:58.148219",
-        "pr_comments": "2026-06-12T20:27:00.198934",
-        "prs": "2026-06-12T20:26:59.152141",
-        "prs_merged": "2026-06-12T20:26:59.787379"
+        "comments": "2026-06-21T14:27:51.373268",
+        "issues": "2026-06-21T14:27:51.031009",
+        "pr_comments": "2026-06-21T14:27:52.462128",
+        "prs": "2026-06-21T14:27:51.826873",
+        "prs_merged": "2026-06-21T14:27:52.206793"
       },
       "users": {
         "ErikBjare": {
@@ -14297,11 +14322,11 @@
     },
     "ActivityWatch/activitywatch.github.io": {
       "last_synced": {
-        "comments": "2026-06-12T20:27:01.243410",
-        "issues": "2026-06-12T20:27:00.765182",
-        "pr_comments": "2026-06-12T20:27:03.521653",
-        "prs": "2026-06-12T20:27:02.279408",
-        "prs_merged": "2026-06-12T20:27:03.080960"
+        "comments": "2026-06-21T14:27:53.303016",
+        "issues": "2026-06-21T14:27:52.926124",
+        "pr_comments": "2026-06-21T14:27:55.446579",
+        "prs": "2026-06-21T14:27:53.893840",
+        "prs_merged": "2026-06-21T14:27:55.049136"
       },
       "users": {
         "0xbrayo": {
@@ -14310,14 +14335,19 @@
             "2024-07-09",
             "2024-07-29",
             "2026-03-26",
-            "2026-04-27"
+            "2026-04-27",
+            "2026-06-12",
+            "2026-06-13",
+            "2026-06-17",
+            "2026-06-19",
+            "2026-06-21"
           ],
-          "comment_words": 178,
-          "comments": 4,
-          "issues": 2,
-          "pr_comments": 1,
-          "prs": 2,
-          "prs_merged": 0
+          "comment_words": 253,
+          "comments": 8,
+          "issues": 3,
+          "pr_comments": 2,
+          "prs": 3,
+          "prs_merged": 1
         },
         "ErikBjare": {
           "active_days": [
@@ -14399,14 +14429,15 @@
             "2026-05-21",
             "2026-05-22",
             "2026-06-02",
-            "2026-06-07"
+            "2026-06-07",
+            "2026-06-13"
           ],
-          "comment_words": 1193,
-          "comments": 20,
+          "comment_words": 1236,
+          "comments": 21,
           "issues": 11,
           "pr_comments": 12,
           "prs": 11,
-          "prs_merged": 9
+          "prs_merged": 10
         },
         "abena07": {
           "active_days": [
@@ -14444,6 +14475,20 @@
           "pr_comments": 3,
           "prs": 5,
           "prs_merged": 2
+        },
+        "halite-inc": {
+          "active_days": [
+            "2026-06-17",
+            "2026-06-18",
+            "2026-06-19",
+            "2026-06-20"
+          ],
+          "comment_words": 147,
+          "comments": 3,
+          "issues": 1,
+          "pr_comments": 0,
+          "prs": 1,
+          "prs_merged": 0
         },
         "hangy": {
           "active_days": [
@@ -14555,11 +14600,11 @@
     },
     "ActivityWatch/aw-android": {
       "last_synced": {
-        "comments": "2026-06-12T20:27:04.769739",
-        "issues": "2026-06-12T20:27:04.111425",
-        "pr_comments": "2026-06-12T20:27:06.995300",
-        "prs": "2026-06-12T20:27:05.790679",
-        "prs_merged": "2026-06-12T20:27:06.533633"
+        "comments": "2026-06-21T14:27:56.262621",
+        "issues": "2026-06-21T14:27:55.913698",
+        "pr_comments": "2026-06-21T14:27:57.830799",
+        "prs": "2026-06-21T14:27:56.971259",
+        "prs_merged": "2026-06-21T14:27:57.549152"
       },
       "users": {
         "0xbrayo": {
@@ -15697,6 +15742,17 @@
           "prs": 0,
           "prs_merged": 0
         },
+        "roke-julian-lockhart": {
+          "active_days": [
+            "2026-06-19"
+          ],
+          "comment_words": 0,
+          "comments": 0,
+          "issues": 1,
+          "pr_comments": 0,
+          "prs": 0,
+          "prs_merged": 0
+        },
         "skewballfox": {
           "active_days": [
             "2023-05-07"
@@ -15885,11 +15941,11 @@
     },
     "ActivityWatch/aw-client": {
       "last_synced": {
-        "comments": "2026-06-12T20:27:08.098485",
-        "issues": "2026-06-12T20:27:07.559343",
-        "pr_comments": "2026-06-12T20:27:10.931219",
-        "prs": "2026-06-12T20:27:09.350773",
-        "prs_merged": "2026-06-12T20:27:10.505784"
+        "comments": "2026-06-21T14:27:58.749582",
+        "issues": "2026-06-21T14:27:58.364351",
+        "pr_comments": "2026-06-21T14:28:00.842630",
+        "prs": "2026-06-21T14:27:59.659585",
+        "prs_merged": "2026-06-21T14:28:00.440276"
       },
       "users": {
         "0xbrayo": {
@@ -16379,6 +16435,18 @@
           "prs": 1,
           "prs_merged": 1
         },
+        "rtsdque": {
+          "active_days": [
+            "2026-06-16",
+            "2026-06-19"
+          ],
+          "comment_words": 42,
+          "comments": 2,
+          "issues": 2,
+          "pr_comments": 0,
+          "prs": 2,
+          "prs_merged": 0
+        },
         "shouya": {
           "active_days": [
             "2023-06-16"
@@ -16456,22 +16524,23 @@
     },
     "ActivityWatch/aw-client-js": {
       "last_synced": {
-        "comments": "2026-06-12T20:27:12.129961",
-        "issues": "2026-06-12T20:27:11.625717",
-        "pr_comments": "2026-06-12T20:27:14.654160",
-        "prs": "2026-06-12T20:27:13.021961",
-        "prs_merged": "2026-06-12T20:27:14.207780"
+        "comments": "2026-06-21T14:28:01.794336",
+        "issues": "2026-06-21T14:28:01.385555",
+        "pr_comments": "2026-06-21T14:28:03.302101",
+        "prs": "2026-06-21T14:28:02.375117",
+        "prs_merged": "2026-06-21T14:28:02.966759"
       },
       "users": {
         "0xbrayo": {
           "active_days": [
-            "2025-03-09"
+            "2025-03-09",
+            "2026-06-17"
           ],
           "comment_words": 0,
           "comments": 0,
-          "issues": 1,
+          "issues": 2,
           "pr_comments": 0,
-          "prs": 1,
+          "prs": 2,
           "prs_merged": 1
         },
         "BelKed": {
@@ -16668,21 +16737,21 @@
     },
     "ActivityWatch/aw-client-rust": {
       "last_synced": {
-        "comments": "2026-06-12T20:27:15.812281",
-        "issues": "2026-06-12T20:27:15.262592",
-        "pr_comments": "2026-06-12T20:27:17.177944",
-        "prs": "2026-06-12T20:27:16.326403",
-        "prs_merged": "2026-06-12T20:27:16.742334"
+        "comments": "2026-06-21T14:28:04.054555",
+        "issues": "2026-06-21T14:28:03.712248",
+        "pr_comments": "2026-06-21T14:28:04.980146",
+        "prs": "2026-06-21T14:28:04.427987",
+        "prs_merged": "2026-06-21T14:28:04.734166"
       },
       "users": {}
     },
     "ActivityWatch/aw-core": {
       "last_synced": {
-        "comments": "2026-06-12T20:27:18.269847",
-        "issues": "2026-06-12T20:27:17.760624",
-        "pr_comments": "2026-06-12T20:27:21.309530",
-        "prs": "2026-06-12T20:27:19.735904",
-        "prs_merged": "2026-06-12T20:27:20.866807"
+        "comments": "2026-06-21T14:28:05.874309",
+        "issues": "2026-06-21T14:28:05.471456",
+        "pr_comments": "2026-06-21T14:28:07.988619",
+        "prs": "2026-06-21T14:28:06.786284",
+        "prs_merged": "2026-06-21T14:28:07.641292"
       },
       "users": {
         "0xbrayo": {
@@ -16973,6 +17042,17 @@
           "issues": 0,
           "pr_comments": 11,
           "prs": 0,
+          "prs_merged": 0
+        },
+        "behdadmansouri": {
+          "active_days": [
+            "2026-06-17"
+          ],
+          "comment_words": 0,
+          "comments": 0,
+          "issues": 1,
+          "pr_comments": 0,
+          "prs": 1,
           "prs_merged": 0
         },
         "carlwgeorge": {
@@ -17346,11 +17426,11 @@
     },
     "ActivityWatch/aw-leaderboard-firebase": {
       "last_synced": {
-        "comments": "2026-06-12T20:27:22.400820",
-        "issues": "2026-06-12T20:27:21.859595",
-        "pr_comments": "2026-06-12T20:27:24.344345",
-        "prs": "2026-06-12T20:27:23.076152",
-        "prs_merged": "2026-06-12T20:27:23.858922"
+        "comments": "2026-06-21T14:28:08.849552",
+        "issues": "2026-06-21T14:28:08.493552",
+        "pr_comments": "2026-06-21T14:28:10.239669",
+        "prs": "2026-06-21T14:28:09.394009",
+        "prs_merged": "2026-06-21T14:28:09.911312"
       },
       "users": {
         "0xFrama": {
@@ -17446,21 +17526,21 @@
     },
     "ActivityWatch/aw-leaderboard-rust": {
       "last_synced": {
-        "comments": "2026-06-12T20:27:25.531982",
-        "issues": "2026-06-12T20:27:25.021034",
-        "pr_comments": "2026-06-12T20:27:27.071828",
-        "prs": "2026-06-12T20:27:26.030721",
-        "prs_merged": "2026-06-12T20:27:26.524109"
+        "comments": "2026-06-21T14:28:10.995413",
+        "issues": "2026-06-21T14:28:10.650865",
+        "pr_comments": "2026-06-21T14:28:12.003481",
+        "prs": "2026-06-21T14:28:11.344055",
+        "prs_merged": "2026-06-21T14:28:11.720639"
       },
       "users": {}
     },
     "ActivityWatch/aw-notify": {
       "last_synced": {
-        "comments": "2026-06-12T20:27:28.161660",
-        "issues": "2026-06-12T20:27:27.663540",
-        "pr_comments": "2026-06-12T20:27:29.878007",
-        "prs": "2026-06-12T20:27:28.804052",
-        "prs_merged": "2026-06-12T20:27:29.448656"
+        "comments": "2026-06-21T14:28:12.826813",
+        "issues": "2026-06-21T14:28:12.439113",
+        "pr_comments": "2026-06-21T14:28:14.046725",
+        "prs": "2026-06-21T14:28:13.308497",
+        "prs_merged": "2026-06-21T14:28:13.773879"
       },
       "users": {
         "0xbrayo": {
@@ -17644,11 +17724,11 @@
     },
     "ActivityWatch/aw-qt": {
       "last_synced": {
-        "comments": "2026-06-12T20:27:30.996219",
-        "issues": "2026-06-12T20:27:30.455437",
-        "pr_comments": "2026-06-12T20:27:33.452833",
-        "prs": "2026-06-12T20:27:32.056763",
-        "prs_merged": "2026-06-12T20:27:33.015105"
+        "comments": "2026-06-21T14:28:14.941046",
+        "issues": "2026-06-21T14:28:14.584649",
+        "pr_comments": "2026-06-21T14:28:16.765990",
+        "prs": "2026-06-21T14:28:15.694828",
+        "prs_merged": "2026-06-21T14:28:16.464598"
       },
       "users": {
         "0xbrayo": {
@@ -18539,11 +18619,11 @@
     },
     "ActivityWatch/aw-server": {
       "last_synced": {
-        "comments": "2026-06-12T20:27:34.722003",
-        "issues": "2026-06-12T20:27:34.201011",
-        "pr_comments": "2026-06-12T20:27:37.945241",
-        "prs": "2026-06-12T20:27:36.112858",
-        "prs_merged": "2026-06-12T20:27:37.482953"
+        "comments": "2026-06-21T14:28:17.583965",
+        "issues": "2026-06-21T14:28:17.231438",
+        "pr_comments": "2026-06-21T14:28:19.785081",
+        "prs": "2026-06-21T14:28:18.543528",
+        "prs_merged": "2026-06-21T14:28:19.438723"
       },
       "users": {
         "2br-2b": {
@@ -18884,6 +18964,17 @@
         "aaayushsingh": {
           "active_days": [
             "2021-10-01"
+          ],
+          "comment_words": 0,
+          "comments": 0,
+          "issues": 1,
+          "pr_comments": 0,
+          "prs": 1,
+          "prs_merged": 0
+        },
+        "behdadmansouri": {
+          "active_days": [
+            "2026-06-17"
           ],
           "comment_words": 0,
           "comments": 0,
@@ -19409,11 +19500,11 @@
     },
     "ActivityWatch/aw-server-rust": {
       "last_synced": {
-        "comments": "2026-06-12T20:27:39.064523",
-        "issues": "2026-06-12T20:27:38.565155",
-        "pr_comments": "2026-06-12T20:27:41.785761",
-        "prs": "2026-06-12T20:27:40.221072",
-        "prs_merged": "2026-06-12T20:27:41.379381"
+        "comments": "2026-06-21T14:28:20.737103",
+        "issues": "2026-06-21T14:28:20.299465",
+        "pr_comments": "2026-06-21T14:28:23.217420",
+        "prs": "2026-06-21T14:28:21.643849",
+        "prs_merged": "2026-06-21T14:28:22.828734"
       },
       "users": {
         "0xbrayo": {
@@ -19463,14 +19554,15 @@
             "2026-04-22",
             "2026-05-27",
             "2026-06-11",
-            "2026-06-12"
+            "2026-06-12",
+            "2026-06-13"
           ],
-          "comment_words": 2154,
-          "comments": 53,
-          "issues": 22,
-          "pr_comments": 17,
-          "prs": 19,
-          "prs_merged": 12
+          "comment_words": 2789,
+          "comments": 62,
+          "issues": 26,
+          "pr_comments": 18,
+          "prs": 23,
+          "prs_merged": 13
         },
         "2e3s": {
           "active_days": [
@@ -19838,10 +19930,11 @@
             "2026-05-21",
             "2026-05-25",
             "2026-05-27",
-            "2026-06-12"
+            "2026-06-12",
+            "2026-06-13"
           ],
-          "comment_words": 10464,
-          "comments": 279,
+          "comment_words": 10512,
+          "comments": 280,
           "issues": 98,
           "pr_comments": 141,
           "prs": 70,
@@ -20004,6 +20097,17 @@
           "prs": 0,
           "prs_merged": 0
         },
+        "Ryguy6001": {
+          "active_days": [
+            "2026-06-13"
+          ],
+          "comment_words": 0,
+          "comments": 0,
+          "issues": 1,
+          "pr_comments": 0,
+          "prs": 0,
+          "prs_merged": 0
+        },
         "S-Sohi": {
           "active_days": [
             "2024-08-16"
@@ -20126,10 +20230,11 @@
             "2026-05-25",
             "2026-05-26",
             "2026-05-27",
-            "2026-06-12"
+            "2026-06-12",
+            "2026-06-13"
           ],
-          "comment_words": 10349,
-          "comments": 123,
+          "comment_words": 11249,
+          "comments": 129,
           "issues": 27,
           "pr_comments": 36,
           "prs": 25,
@@ -21000,11 +21105,11 @@
     },
     "ActivityWatch/aw-tauri": {
       "last_synced": {
-        "comments": "2026-06-12T20:27:42.808958",
-        "issues": "2026-06-12T20:27:42.362498",
-        "pr_comments": "2026-06-12T20:27:45.224008",
-        "prs": "2026-06-12T20:27:43.803254",
-        "prs_merged": "2026-06-12T20:27:44.794012"
+        "comments": "2026-06-21T14:28:24.118306",
+        "issues": "2026-06-21T14:28:23.727056",
+        "pr_comments": "2026-06-21T14:28:26.534806",
+        "prs": "2026-06-21T14:28:24.945741",
+        "prs_merged": "2026-06-21T14:28:26.162042"
       },
       "users": {
         "0xbrayo": {
@@ -21149,14 +21254,16 @@
             "2026-04-25",
             "2026-04-27",
             "2026-05-25",
-            "2026-05-26"
+            "2026-05-26",
+            "2026-06-18",
+            "2026-06-19"
           ],
-          "comment_words": 2531,
-          "comments": 171,
-          "issues": 146,
+          "comment_words": 2533,
+          "comments": 172,
+          "issues": 147,
           "pr_comments": 52,
-          "prs": 103,
-          "prs_merged": 92
+          "prs": 104,
+          "prs_merged": 93
         },
         "ErikBjare": {
           "active_days": [
@@ -21315,11 +21422,11 @@
     },
     "ActivityWatch/aw-watcher-afk": {
       "last_synced": {
-        "comments": "2026-06-12T20:27:46.332899",
-        "issues": "2026-06-12T20:27:45.819179",
-        "pr_comments": "2026-06-12T20:27:48.640640",
-        "prs": "2026-06-12T20:27:47.259825",
-        "prs_merged": "2026-06-12T20:27:48.056516"
+        "comments": "2026-06-21T14:28:27.376801",
+        "issues": "2026-06-21T14:28:27.051353",
+        "pr_comments": "2026-06-21T14:28:29.057621",
+        "prs": "2026-06-21T14:28:28.095924",
+        "prs_merged": "2026-06-21T14:28:28.788005"
       },
       "users": {
         "Alterzey": {
@@ -21852,11 +21959,11 @@
     },
     "ActivityWatch/aw-watcher-input": {
       "last_synced": {
-        "comments": "2026-06-12T20:27:49.755113",
-        "issues": "2026-06-12T20:27:49.254903",
-        "pr_comments": "2026-06-12T20:27:51.562377",
-        "prs": "2026-06-12T20:27:50.531897",
-        "prs_merged": "2026-06-12T20:27:51.149121"
+        "comments": "2026-06-21T14:28:29.804049",
+        "issues": "2026-06-21T14:28:29.450678",
+        "pr_comments": "2026-06-21T14:28:31.072727",
+        "prs": "2026-06-21T14:28:30.326274",
+        "prs_merged": "2026-06-21T14:28:30.829030"
       },
       "users": {
         "0xbrayo": {
@@ -22361,11 +22468,11 @@
     },
     "ActivityWatch/aw-watcher-vim": {
       "last_synced": {
-        "comments": "2026-06-12T20:27:52.655822",
-        "issues": "2026-06-12T20:27:52.156320",
-        "pr_comments": "2026-06-12T20:27:54.417999",
-        "prs": "2026-06-12T20:27:53.372209",
-        "prs_merged": "2026-06-12T20:27:53.994378"
+        "comments": "2026-06-21T14:28:31.914979",
+        "issues": "2026-06-21T14:28:31.590667",
+        "pr_comments": "2026-06-21T14:28:33.129746",
+        "prs": "2026-06-21T14:28:32.391871",
+        "prs_merged": "2026-06-21T14:28:32.854542"
       },
       "users": {
         "3rd": {
@@ -22812,11 +22919,11 @@
     },
     "ActivityWatch/aw-watcher-vscode": {
       "last_synced": {
-        "comments": "2026-06-12T20:27:55.615677",
-        "issues": "2026-06-12T20:27:55.126677",
-        "pr_comments": "2026-06-12T20:27:57.758086",
-        "prs": "2026-06-12T20:27:56.555226",
-        "prs_merged": "2026-06-12T20:27:57.201644"
+        "comments": "2026-06-21T14:28:34.023282",
+        "issues": "2026-06-21T14:28:33.620947",
+        "pr_comments": "2026-06-21T14:28:35.441448",
+        "prs": "2026-06-21T14:28:34.679679",
+        "prs_merged": "2026-06-21T14:28:35.178774"
       },
       "users": {
         "0xbrayo": {
@@ -23642,11 +23749,11 @@
     },
     "ActivityWatch/aw-watcher-web": {
       "last_synced": {
-        "comments": "2026-06-12T20:27:58.923326",
-        "issues": "2026-06-12T20:27:58.409803",
-        "pr_comments": "2026-06-12T20:28:01.927214",
-        "prs": "2026-06-12T20:28:00.290489",
-        "prs_merged": "2026-06-12T20:28:01.492765"
+        "comments": "2026-06-21T14:28:36.345233",
+        "issues": "2026-06-21T14:28:35.975599",
+        "pr_comments": "2026-06-21T14:28:38.453834",
+        "prs": "2026-06-21T14:28:37.331603",
+        "prs_merged": "2026-06-21T14:28:38.183495"
       },
       "users": {
         "0xbrayo": {
@@ -26012,6 +26119,17 @@
           "prs": 0,
           "prs_merged": 0
         },
+        "ngoomie": {
+          "active_days": [
+            "2026-06-21"
+          ],
+          "comment_words": 28,
+          "comments": 1,
+          "issues": 0,
+          "pr_comments": 0,
+          "prs": 0,
+          "prs_merged": 0
+        },
         "ninafiona": {
           "active_days": [
             "2025-08-28"
@@ -26627,11 +26745,11 @@
     },
     "ActivityWatch/aw-watcher-window": {
       "last_synced": {
-        "comments": "2026-06-12T20:28:02.992534",
-        "issues": "2026-06-12T20:28:02.473584",
-        "pr_comments": "2026-06-12T20:28:06.112203",
-        "prs": "2026-06-12T20:28:04.543166",
-        "prs_merged": "2026-06-12T20:28:05.656255"
+        "comments": "2026-06-21T14:28:39.217595",
+        "issues": "2026-06-21T14:28:38.871524",
+        "pr_comments": "2026-06-21T14:28:41.130288",
+        "prs": "2026-06-21T14:28:40.096518",
+        "prs_merged": "2026-06-21T14:28:40.872804"
       },
       "users": {
         "0xErwin1": {
@@ -27949,11 +28067,11 @@
     },
     "ActivityWatch/aw-watcher-window-wayland": {
       "last_synced": {
-        "comments": "2026-06-12T20:28:07.176478",
-        "issues": "2026-06-12T20:28:06.687005",
-        "pr_comments": "2026-06-12T20:28:09.208805",
-        "prs": "2026-06-12T20:28:07.943975",
-        "prs_merged": "2026-06-12T20:28:08.773769"
+        "comments": "2026-06-21T14:28:41.919832",
+        "issues": "2026-06-21T14:28:41.565925",
+        "pr_comments": "2026-06-21T14:28:43.391236",
+        "prs": "2026-06-21T14:28:42.570533",
+        "prs_merged": "2026-06-21T14:28:43.122328"
       },
       "users": {
         "2e3s": {
@@ -28353,11 +28471,11 @@
     },
     "ActivityWatch/aw-webui": {
       "last_synced": {
-        "comments": "2026-06-12T20:28:10.245871",
-        "issues": "2026-06-12T20:28:09.789218",
-        "pr_comments": "2026-06-12T20:28:12.785521",
-        "prs": "2026-06-12T20:28:11.323303",
-        "prs_merged": "2026-06-12T20:28:12.379345"
+        "comments": "2026-06-21T14:28:44.472725",
+        "issues": "2026-06-21T14:28:43.984625",
+        "pr_comments": "2026-06-21T14:28:47.974536",
+        "prs": "2026-06-21T14:28:45.345987",
+        "prs_merged": "2026-06-21T14:28:47.508900"
       },
       "users": {
         "0xbrayo": {
@@ -28393,10 +28511,11 @@
             "2026-05-27",
             "2026-06-02",
             "2026-06-03",
-            "2026-06-08"
+            "2026-06-08",
+            "2026-06-21"
           ],
-          "comment_words": 776,
-          "comments": 33,
+          "comment_words": 789,
+          "comments": 34,
           "issues": 12,
           "pr_comments": 3,
           "prs": 6,
@@ -28413,6 +28532,17 @@
           "pr_comments": 0,
           "prs": 2,
           "prs_merged": 1
+        },
+        "7nicetoseeu": {
+          "active_days": [
+            "2026-06-20"
+          ],
+          "comment_words": 0,
+          "comments": 0,
+          "issues": 1,
+          "pr_comments": 0,
+          "prs": 0,
+          "prs_merged": 0
         },
         "9ood": {
           "active_days": [
@@ -29282,6 +29412,17 @@
           "prs": 1,
           "prs_merged": 1
         },
+        "MrKyomoto": {
+          "active_days": [
+            "2026-06-13"
+          ],
+          "comment_words": 0,
+          "comments": 0,
+          "issues": 1,
+          "pr_comments": 0,
+          "prs": 1,
+          "prs_merged": 0
+        },
         "Mte90": {
           "active_days": [
             "2020-01-16",
@@ -29348,10 +29489,11 @@
         "NureRykushBohdan": {
           "active_days": [
             "2026-06-02",
-            "2026-06-03"
+            "2026-06-03",
+            "2026-06-15"
           ],
-          "comment_words": 87,
-          "comments": 3,
+          "comment_words": 209,
+          "comments": 4,
           "issues": 1,
           "pr_comments": 0,
           "prs": 1,
@@ -29586,13 +29728,17 @@
             "2026-06-05",
             "2026-06-06",
             "2026-06-07",
-            "2026-06-08"
+            "2026-06-08",
+            "2026-06-13",
+            "2026-06-14",
+            "2026-06-18",
+            "2026-06-19"
           ],
-          "comment_words": 13505,
-          "comments": 200,
-          "issues": 60,
-          "pr_comments": 43,
-          "prs": 57,
+          "comment_words": 14573,
+          "comments": 211,
+          "issues": 63,
+          "pr_comments": 47,
+          "prs": 59,
           "prs_merged": 50
         },
         "Trokkin": {
@@ -29670,6 +29816,17 @@
           "issues": 1,
           "pr_comments": 0,
           "prs": 0,
+          "prs_merged": 0
+        },
+        "Zeeshan138063": {
+          "active_days": [
+            "2026-06-17"
+          ],
+          "comment_words": 0,
+          "comments": 0,
+          "issues": 1,
+          "pr_comments": 0,
+          "prs": 1,
           "prs_merged": 0
         },
         "Zkffkah": {
@@ -29807,6 +29964,17 @@
           "issues": 1,
           "pr_comments": 0,
           "prs": 0,
+          "prs_merged": 0
+        },
+        "behdadmansouri": {
+          "active_days": [
+            "2026-06-17"
+          ],
+          "comment_words": 0,
+          "comments": 0,
+          "issues": 2,
+          "pr_comments": 0,
+          "prs": 2,
           "prs_merged": 0
         },
         "bekicot": {
@@ -31392,11 +31560,12 @@
             "2025-05-06",
             "2025-05-07",
             "2025-07-06",
-            "2025-07-08"
+            "2025-07-08",
+            "2026-06-15"
           ],
           "comment_words": 213,
           "comments": 8,
-          "issues": 4,
+          "issues": 5,
           "pr_comments": 0,
           "prs": 3,
           "prs_merged": 3
@@ -31440,11 +31609,11 @@
     },
     "ActivityWatch/docs": {
       "last_synced": {
-        "comments": "2026-06-12T20:28:13.899307",
-        "issues": "2026-06-12T20:28:13.392137",
-        "pr_comments": "2026-06-12T20:28:17.084407",
-        "prs": "2026-06-12T20:28:15.544112",
-        "prs_merged": "2026-06-12T20:28:16.682265"
+        "comments": "2026-06-21T14:28:48.791390",
+        "issues": "2026-06-21T14:28:48.408508",
+        "pr_comments": "2026-06-21T14:28:51.146008",
+        "prs": "2026-06-21T14:28:49.823126",
+        "prs_merged": "2026-06-21T14:28:50.880241"
       },
       "users": {
         "0xbrayo": {
