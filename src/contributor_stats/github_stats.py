@@ -405,6 +405,11 @@ DISPLAY_COLUMNS = [
     "total",
 ]
 
+# Minimum total activity for a user to appear in either rendered artifact, so
+# the table and the contributors list apply the same bar (drive-by/near-zero
+# accounts are excluded from both).
+MIN_ACTIVITY_TOTAL = 10
+
 
 def _aggregate_stats(state: dict) -> pd.DataFrame:
     """Aggregate per-repo stats from saved state into one bot-filtered
@@ -564,8 +569,8 @@ def _aggregate_stats(state: dict) -> pd.DataFrame:
 
 def _render_table(df: pd.DataFrame) -> None:
     """Render the HTML activity table from aggregated stats."""
-    # select only users with total > 10
-    df = df[df["total"] > 10].copy()
+    # drop near-inactive accounts (same bar as the contributors list)
+    df = df[df["total"] > MIN_ACTIVITY_TOTAL].copy()
 
     # linkify GitHub usernames
     df["user"] = df["user"].apply(lambda x: f'<a href="https://github.com/{x}">{x}</a>')
@@ -597,7 +602,10 @@ NUM_CONTRIBUTORS = 64
 def _render_contributors(df: pd.DataFrame) -> None:
     """Render the contributors avatar list consumed by the website's
     _data/contributors.yml (the top contributors by total activity)."""
-    users = df["user"].head(NUM_CONTRIBUTORS).tolist()
+    # same activity bar as the table, so the two artifacts stay consistent even
+    # if the contributor pool ever shrinks below NUM_CONTRIBUTORS
+    eligible = df[df["total"] > MIN_ACTIVITY_TOTAL]
+    users = eligible["user"].head(NUM_CONTRIBUTORS).tolist()
     savepath = Path("contributors.yml")
     with savepath.open("w") as f:
         f.write("\n".join(f"- {user}" for user in users) + "\n")
