@@ -395,8 +395,29 @@ def _sync(gh: Github, state: dict) -> None:
         _sync_repo(gh, state, repo.full_name)
 
 
-def _render_table(state: dict) -> None:
-    """Render the HTML activity table from saved state (no API calls)."""
+DISPLAY_COLUMNS = [
+    "issues",
+    "comments",
+    "prs",
+    "prs_merged",
+    "pr_comments",
+    "active_days",
+    "total",
+]
+
+# Minimum total activity for a user to appear in either rendered artifact, so
+# the table and the contributors list apply the same bar (drive-by/near-zero
+# accounts are excluded from both).
+MIN_ACTIVITY_TOTAL = 10
+
+
+def _aggregate_stats(state: dict) -> pd.DataFrame:
+    """Aggregate per-repo stats from saved state into one bot-filtered
+    DataFrame sorted by activity, most active first (no API calls).
+
+    Returns columns ``['user'] + DISPLAY_COLUMNS``. Both the HTML activity
+    table and the contributors avatar list are rendered from this.
+    """
     repostats: dict[str, RepoStats] = {}
     for repo_fullname, repo_state in state["repos"].items():
         users = repo_state["users"]
@@ -527,18 +548,9 @@ def _render_table(state: dict) -> None:
         return df
 
     df = df_total(repostats)
-    display_columns = [
-        "issues",
-        "comments",
-        "prs",
-        "prs_merged",
-        "pr_comments",
-        "active_days",
-        "total",
-    ]
 
     pd.set_option("display.max_rows", None, "display.max_columns", None)
-    print(df[display_columns])
+    print(df[DISPLAY_COLUMNS])
     print(df.columns)
 
     # reset index to make user a column (better in HTML)
@@ -547,16 +559,18 @@ def _render_table(state: dict) -> None:
     # filter out bots (named end in "[bot]")
     df = df[~df["user"].str.endswith("[bot]")]
 
-    # sort before saving as HTML
+    # most active first
     df = df.sort_values(
         ["total", "active_days", "user"], ascending=[False, False, True]
     )
 
-    # select subset of columns
-    df = df[["user"] + display_columns]
+    return df[["user"] + DISPLAY_COLUMNS]
 
-    # select only users with total > 1
-    df = df[df["total"] > 10]
+
+def _render_table(df: pd.DataFrame) -> None:
+    """Render the HTML activity table from aggregated stats."""
+    # drop near-inactive accounts (same bar as the contributors list)
+    df = df[df["total"] > MIN_ACTIVITY_TOTAL].copy()
 
     # linkify GitHub usernames
     df["user"] = df["user"].apply(lambda x: f'<a href="https://github.com/{x}">{x}</a>')
@@ -577,6 +591,25 @@ def _render_table(state: dict) -> None:
         )
         f.write(html)
     print(f"Written to {savepath}")
+
+
+# Number of top contributors (by total GitHub activity) whose avatars are shown
+# on the website's contributors page. Chosen to roughly preserve the size of the
+# previously hand-maintained _data/contributors.yml.
+NUM_CONTRIBUTORS = 64
+
+
+def _render_contributors(df: pd.DataFrame) -> None:
+    """Render the contributors avatar list consumed by the website's
+    _data/contributors.yml (the top contributors by total activity)."""
+    # same activity bar as the table, so the two artifacts stay consistent even
+    # if the contributor pool ever shrinks below NUM_CONTRIBUTORS
+    eligible = df[df["total"] > MIN_ACTIVITY_TOTAL]
+    users = eligible["user"].head(NUM_CONTRIBUTORS).tolist()
+    savepath = Path("contributors.yml")
+    with savepath.open("w") as f:
+        f.write("\n".join(f"- {user}" for user in users) + "\n")
+    print(f"Written {len(users)} contributors to {savepath}")
     print("Done!")
 
 
@@ -585,7 +618,9 @@ def main(render_only: bool = False) -> None:
     if not render_only:
         gh = _init_gh()
         _sync(gh, state)
-    _render_table(state)
+    df = _aggregate_stats(state)
+    _render_table(df)
+    _render_contributors(df)
 
 
 if __name__ == "__main__":

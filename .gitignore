@@ -1,5 +1,7 @@
 __pycache__
 *.html
+# Rendered build artifact consumed by the website (see Makefile `render`)
+contributors.yml
 .*cache
 repos/
 *.mp4
